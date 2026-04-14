@@ -2,6 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { IncidentService } from './services/IncidentService'
 import IncidentList from './components/IncidentList'
 import IncidentForm from './components/IncidentForm'
+
+// 1. IMPORT YOUR NEW SHELL COMPONENTS
+import Navbar from './components/Navbar'
+import Footer from './components/Footer'
+
 import './app.css'
 
 export default function App() {
@@ -68,36 +73,53 @@ export default function App() {
         }
     }
 
+    // 2. THE WRAPPED RETURN
     return (
-        <div className="incident-app">
-            <header className="app-header">
-                <h1>Incident Response Manager</h1>
-                <button className="create-button" onClick={handleCreateClick}>
-                    Create New Incident
-                </button>
-            </header>
+        <div className="sugboclean-shell" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            
+            {/* Persistent Navbar */}
+            <Navbar isAdmin={true} onTogglePortal={() => {}} />
+            
+            {/* The Main Canvas - This replaces your old "incident-app" div wrapper */}
+            <main className="main-canvas" style={{ flex: 1, padding: '20px' }}>
+                
+                {/* YOUR ORIGINAL LOGIC STARTS HERE */}
+                <div className="incident-app">
+                    <header className="app-header">
+                        <h1>Incident Response Manager</h1>
+                        <button className="create-button" onClick={handleCreateClick}>
+                            Create New Incident
+                        </button>
+                    </header>
 
-            {error && (
-                <div className="error-message">
-                    {error}
-                    <button onClick={() => setError(null)}>Dismiss</button>
+                    {error && (
+                        <div className="error-message">
+                            {error}
+                            <button onClick={() => setError(null)}>Dismiss</button>
+                        </div>
+                    )}
+
+                    {loading ? (
+                        <div className="loading">Loading...</div>
+                    ) : (
+                        <IncidentList
+                            incidents={incidents}
+                            onEdit={handleEditClick}
+                            onRefresh={refreshIncidents}
+                            service={incidentService}
+                        />
+                    )}
+
+                    {showForm && (
+                        <IncidentForm incident={selectedIncident} onSubmit={handleFormSubmit} onCancel={handleFormClose} />
+                    )}
                 </div>
-            )}
+                {/* YOUR ORIGINAL LOGIC ENDS HERE */}
 
-            {loading ? (
-                <div className="loading">Loading...</div>
-            ) : (
-                <IncidentList
-                    incidents={incidents}
-                    onEdit={handleEditClick}
-                    onRefresh={refreshIncidents}
-                    service={incidentService}
-                />
-            )}
+            </main>
 
-            {showForm && (
-                <IncidentForm incident={selectedIncident} onSubmit={handleFormSubmit} onCancel={handleFormClose} />
-            )}
+            {/* Persistent Footer */}
+            <Footer />
         </div>
     )
 }
