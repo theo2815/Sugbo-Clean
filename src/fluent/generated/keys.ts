@@ -357,6 +357,10 @@ declare global {
                         table: 'sys_ws_operation'
                         id: 'd5069e7493d80310153ffdc9dd03d6db'
                     }
+                    d7d13f7893944310153ffdc9dd03d6ed: {
+                        table: 'sys_kmf_module_key_policy'
+                        id: 'd7d13f7893944310153ffdc9dd03d6ed'
+                    }
                     d816c1b893500310153ffdc9dd03d687: {
                         table: 'sys_security_acl'
                         id: 'd816c1b893500310153ffdc9dd03d687'
