@@ -20,23 +20,25 @@ export default function Navbar({ isAdmin, onTogglePortal }) {
                 </small>
             </div>
 
-            <div className="nav-actions" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <button
-                    className="nav-link-btn"
-                    onClick={onTogglePortal}
-                    style={{
-                        background: 'none',
-                        border: `1px solid ${COLORS.secondary}`,
-                        color: COLORS.secondary,
-                        padding: '5px 15px',
-                        borderRadius: '20px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    {isAdmin ? 'Switch to Resident View' : 'Admin Login'}
-                </button>
-            </div>
+            {isAdmin && (
+                <div className="nav-actions" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    <button
+                        className="nav-link-btn"
+                        onClick={onTogglePortal}
+                        style={{
+                            background: 'none',
+                            border: `1px solid ${COLORS.secondary}`,
+                            color: COLORS.secondary,
+                            padding: '5px 15px',
+                            borderRadius: '20px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        Switch to Resident View
+                    </button>
+                </div>
+            )}
         </nav>
     );
 }
