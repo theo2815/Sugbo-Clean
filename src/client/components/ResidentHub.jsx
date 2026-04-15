@@ -1,56 +1,57 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { COLORS } from '../../utils/constants';
+import Card from './shared/Card';
 
-export default function ResidentHub({ onNavigate }) {
+const ROUTES = {
+    schedule: '/schedule',
+    report: '/report',
+    track: '/track',
+    guide: '/waste-guide',
+    haulers: '/haulers',
+    map: '/route-map',
+};
+
+export default function ResidentHub() {
+    const navigate = useNavigate();
+
     const primaryActions = [
-        { id: 'schedule', title: 'View My Schedule', icon: '📅', color: '#4caf50', desc: 'Check collection dates' },
-        { id: 'report', title: 'Report Missed Pickup', icon: '⚠️', color: '#2196f3', desc: 'File a new report' },
-        { id: 'track', title: 'Track My Report', icon: '🔍', color: '#ff9800', desc: 'Check report status' }
+        { id: 'schedule', title: 'View My Schedule', icon: '📅', color: COLORS.primary, desc: 'Check collection dates' },
+        { id: 'report', title: 'Report Missed Pickup', icon: '⚠️', color: COLORS.secondary, desc: 'File a new report' },
+        { id: 'track', title: 'Track My Report', icon: '🔍', color: COLORS.status.pending, desc: 'Check report status' },
     ];
 
     const secondaryActions = [
         { id: 'guide', title: 'Waste Sorting Guide', icon: '♻️', desc: 'Learn how to sort' },
-        { id: 'map', title: 'Hauler & Routes', icon: '🚚', desc: 'View truck paths' }
+        { id: 'haulers', title: 'Hauler Directory', icon: '🚛', desc: 'Contacts & routes' },
     ];
 
     return (
-        <div className="resident-hub">
-            <header style={{ marginBottom: '30px', textAlign: 'center' }}>
-                <h2 style={{ color: '#2c3e50', fontSize: '1.8rem' }}>Maayong Adlaw!</h2>
-                <p style={{ color: '#666' }}>How can SugboClean help you today?</p>
+        <div style={{ padding: 20, maxWidth: 960, margin: '0 auto' }}>
+            <header style={{ marginBottom: 30, textAlign: 'center' }}>
+                <h2 style={{ color: COLORS.text.primary, fontSize: '1.8rem' }}>Maayong Adlaw!</h2>
+                <p style={{ color: COLORS.text.muted }}>How can SugboClean help you today?</p>
             </header>
 
-            {/* Primary 3-Column Grid */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-                gap: '20px',
-                marginBottom: '40px' 
-            }}>
-                {primaryActions.map(card => (
-                    <div key={card.id} className="card" onClick={() => onNavigate(card.id)} 
-                        style={{ cursor: 'pointer', borderTop: `6px solid ${card.color}`, textAlign: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginBottom: 40 }}>
+                {primaryActions.map((card) => (
+                    <Card key={card.id} accentColor={card.color} onClick={() => navigate(ROUTES[card.id])} style={{ textAlign: 'center' }}>
                         <span style={{ fontSize: '3rem' }}>{card.icon}</span>
-                        <h3>{card.title}</h3>
-                        <p style={{ fontSize: '14px', color: '#777' }}>{card.desc}</p>
-                    </div>
+                        <h3 style={{ color: COLORS.text.primary }}>{card.title}</h3>
+                        <p style={{ fontSize: 14, color: COLORS.text.muted, margin: 0 }}>{card.desc}</p>
+                    </Card>
                 ))}
             </div>
 
-            {/* Secondary 2-Column Grid */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
-                gap: '20px' 
-            }}>
-                {secondaryActions.map(card => (
-                    <div key={card.id} className="card" onClick={() => onNavigate(card.id)} 
-                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+                {secondaryActions.map((card) => (
+                    <Card key={card.id} onClick={() => navigate(ROUTES[card.id])} style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                         <span style={{ fontSize: '2rem' }}>{card.icon}</span>
                         <div>
-                            <h4 style={{ margin: 0 }}>{card.title}</h4>
-                            <p style={{ margin: 0, fontSize: '13px', color: '#777' }}>{card.desc}</p>
+                            <h4 style={{ margin: 0, color: COLORS.text.primary }}>{card.title}</h4>
+                            <p style={{ margin: 0, fontSize: 13, color: COLORS.text.muted }}>{card.desc}</p>
                         </div>
-                    </div>
+                    </Card>
                 ))}
             </div>
         </div>

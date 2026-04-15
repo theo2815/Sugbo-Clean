@@ -14,14 +14,17 @@
     "dev": "now-sdk run dev"
   },
   "devDependencies": {
-    "@servicenow/sdk": "4.5.0",
-    "@servicenow/glide": "27.0.4",
-    "eslint": "8.50.0",
     "@servicenow/eslint-plugin-sdk-app-plugin": "4.5.0",
-    "@servicenow/isomorphic-rollup": "^1.2.14"
+    "@servicenow/glide": "27.0.4",
+    "@servicenow/isomorphic-rollup": "^1.2.14",
+    "@servicenow/sdk": "4.5.0",
+    "eslint": "8.50.0"
   },
   "dependencies": {
+    "lucide-react": "^1.8.0",
     "react": "19.x",
-    "react-dom": "19.x"
+    "react-dom": "19.x",
+    "react-router-dom": "^7.14.1",
+    "recharts": "^3.8.1"
   }
 }

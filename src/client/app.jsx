@@ -1,125 +1,90 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { IncidentService } from './services/IncidentService'
-import IncidentList from './components/IncidentList'
-import IncidentForm from './components/IncidentForm'
+import React from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
-// 1. IMPORT YOUR NEW SHELL COMPONENTS
-import Navbar from './components/Navbar'
-import Footer from './components/Footer'
+import { AuthProvider } from '../context/AuthContext';
+import PrivateRoute from './components/shared/PrivateRoute';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 
-import './app.css'
+import HomePage from '../pages/HomePage';
+import ResidentHubPage from '../pages/ResidentHubPage';
+import SchedulePage from '../pages/SchedulePage';
+import ReportPage from '../pages/ReportPage';
+import TrackPage from '../pages/TrackPage';
+import WasteGuidePage from '../pages/WasteGuidePage';
+import HaulerPage from '../pages/HaulerPage';
+import RouteMapPage from '../pages/RouteMapPage';
 
-export default function App() {
-    const [incidents, setIncidents] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [showForm, setShowForm] = useState(false)
-    const [selectedIncident, setSelectedIncident] = useState(null)
-    const [error, setError] = useState(null)
+import LoginPage from '../pages/admin/LoginPage';
+import AdminLayout from '../pages/admin/AdminLayout';
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import AdminAnalyticsPage from '../pages/admin/AdminAnalyticsPage';
 
-    const incidentService = useMemo(() => new IncidentService(), [])
+import ScheduleManager from './components/admin/ScheduleManager';
+import HaulerManager from './components/admin/HaulerManager';
+import RouteStopManager from './components/admin/RouteStopManager';
+import WasteItemManager from './components/admin/WasteItemManager';
 
-    const refreshIncidents = async () => {
-        try {
-            setLoading(true)
-            setError(null)
-            const data = await incidentService.list()
-            setIncidents(data)
-        } catch (err) {
-            setError('Failed to load incidents: ' + (err.message || 'Unknown error'))
-            console.error(err)
-        } finally {
-            setLoading(false)
-        }
-    }
+import './app.css';
 
-    useEffect(() => {
-        void refreshIncidents()
-    }, [])
+function Shell() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const isAdminRoute = location.pathname.startsWith('/admin');
 
-    const handleCreateClick = () => {
-        setSelectedIncident(null)
-        setShowForm(true)
-    }
+    const togglePortal = () => {
+        if (isAdminRoute) navigate('/resident');
+        else navigate('/admin/login');
+    };
 
-    const handleEditClick = (incident) => {
-        setSelectedIncident(incident)
-        setShowForm(true)
-    }
-
-    const handleFormClose = () => {
-        setShowForm(false)
-        setSelectedIncident(null)
-    }
-
-    const handleFormSubmit = async (formData) => {
-        setLoading(true)
-        try {
-            if (selectedIncident) {
-                const sysId =
-                    typeof selectedIncident.sys_id === 'object'
-                        ? selectedIncident.sys_id.value
-                        : selectedIncident.sys_id
-                await incidentService.update(sysId, formData)
-            } else {
-                await incidentService.create(formData)
-            }
-            setShowForm(false)
-            await refreshIncidents()
-        } catch (err) {
-            setError('Failed to save incident: ' + (err.message || 'Unknown error'))
-            console.error(err)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    // 2. THE WRAPPED RETURN
     return (
-        <div className="sugboclean-shell" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            
-            {/* Persistent Navbar */}
-            <Navbar isAdmin={true} onTogglePortal={() => {}} />
-            
-            {/* The Main Canvas - This replaces your old "incident-app" div wrapper */}
-            <main className="main-canvas" style={{ flex: 1, padding: '20px' }}>
-                
-                {/* YOUR ORIGINAL LOGIC STARTS HERE */}
-                <div className="incident-app">
-                    <header className="app-header">
-                        <h1>Incident Response Manager</h1>
-                        <button className="create-button" onClick={handleCreateClick}>
-                            Create New Incident
-                        </button>
-                    </header>
+        <div
+            className="sugboclean-shell"
+            style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
+        >
+            <Navbar isAdmin={isAdminRoute} onTogglePortal={togglePortal} />
 
-                    {error && (
-                        <div className="error-message">
-                            {error}
-                            <button onClick={() => setError(null)}>Dismiss</button>
-                        </div>
-                    )}
+            <main className="main-canvas" style={{ flex: 1 }}>
+                <Routes>
+                    {/* Resident routes */}
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/resident" element={<ResidentHubPage />} />
+                    <Route path="/schedule" element={<SchedulePage />} />
+                    <Route path="/report" element={<ReportPage />} />
+                    <Route path="/track" element={<TrackPage />} />
+                    <Route path="/waste-guide" element={<WasteGuidePage />} />
+                    <Route path="/haulers" element={<HaulerPage />} />
+                    <Route path="/route-map" element={<RouteMapPage />} />
 
-                    {loading ? (
-                        <div className="loading">Loading...</div>
-                    ) : (
-                        <IncidentList
-                            incidents={incidents}
-                            onEdit={handleEditClick}
-                            onRefresh={refreshIncidents}
-                            service={incidentService}
-                        />
-                    )}
+                    {/* Admin login (public) */}
+                    <Route path="/admin/login" element={<LoginPage />} />
 
-                    {showForm && (
-                        <IncidentForm incident={selectedIncident} onSubmit={handleFormSubmit} onCancel={handleFormClose} />
-                    )}
-                </div>
-                {/* YOUR ORIGINAL LOGIC ENDS HERE */}
+                    {/* Admin routes (protected, nested under shared layout) */}
+                    <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
+                        <Route path="dashboard" element={<AdminDashboardPage />} />
+                        <Route path="schedules" element={<ScheduleManager />} />
+                        <Route path="haulers" element={<HaulerManager />} />
+                        <Route path="route-stops" element={<RouteStopManager />} />
+                        <Route path="waste-items" element={<WasteItemManager />} />
+                        <Route path="analytics" element={<AdminAnalyticsPage />} />
+                    </Route>
 
+                    {/* Fallback */}
+                    <Route path="*" element={<HomePage />} />
+                </Routes>
             </main>
 
-            {/* Persistent Footer */}
             <Footer />
         </div>
-    )
+    );
+}
+
+export default function App() {
+    return (
+        <AuthProvider>
+            <BrowserRouter>
+                <Shell />
+            </BrowserRouter>
+        </AuthProvider>
+    );
 }

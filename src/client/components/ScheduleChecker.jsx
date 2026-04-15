@@ -1,56 +1,99 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getBarangays, getSchedules } from '../../services/api';
+import { COLORS } from '../../utils/constants';
+import Select from './shared/Select';
+import Loading from './shared/Loading';
+import Card from './shared/Card';
 
 export default function ScheduleChecker() {
+    const [barangays, setBarangays] = useState([]);
     const [selectedBarangay, setSelectedBarangay] = useState('');
+    const [schedules, setSchedules] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [scheduleLoading, setScheduleLoading] = useState(false);
 
-    // Mock data for SugboClean
-    const schedules = {
-        'Lahug': [
-            { day: 'Monday', type: 'Biodegradable', color: '#4caf50' },
-            { day: 'Wednesday', type: 'Residual', color: '#333333' },
-            { day: 'Friday', type: 'Recyclable', color: '#2196f3' },
-        ],
-        'Mabolo': [
-            { day: 'Tuesday', type: 'Biodegradable', color: '#4caf50' },
-            { day: 'Thursday', type: 'Residual', color: '#333333' },
-            { day: 'Saturday', type: 'Recyclable', color: '#2196f3' },
-        ]
+    useEffect(() => {
+        async function loadBarangays() {
+            try {
+                const { result } = await getBarangays();
+                setBarangays(result);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadBarangays();
+    }, []);
+
+    useEffect(() => {
+        if (!selectedBarangay) {
+            setSchedules([]);
+            return;
+        }
+        async function loadSchedules() {
+            setScheduleLoading(true);
+            try {
+                const { result } = await getSchedules(selectedBarangay);
+                setSchedules(result);
+            } finally {
+                setScheduleLoading(false);
+            }
+        }
+        loadSchedules();
+    }, [selectedBarangay]);
+
+    const wasteTypeColor = {
+        Biodegradable: COLORS.bin.Biodegradable,
+        Recyclable: COLORS.bin.Recyclable,
+        Residual: COLORS.bin.Residual,
     };
 
-    return (
-        <div className="card" style={{ padding: '20px' }}>
-            <h3>Find Your Collection Schedule</h3>
-            <div className="form-group">
-                <select 
-                    value={selectedBarangay} 
-                    onChange={(e) => setSelectedBarangay(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
-                >
-                    <option value="">-- Select your Barangay --</option>
-                    <option value="Lahug">Lahug</option>
-                    <option value="Mabolo">Mabolo</option>
-                </select>
-            </div>
+    if (loading) return <Loading message="Loading barangays..." />;
 
-            {selectedBarangay && (
-                <div style={{ marginTop: '20px' }}>
-                    <h4>{selectedBarangay} Schedule:</h4>
-                    {schedules[selectedBarangay].map((item, index) => (
-                        <div key={index} style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            padding: '10px', 
-                            borderBottom: '1px solid #eee',
-                            borderLeft: `5px solid ${item.color}`,
+    return (
+        <Card>
+            <h3 style={{ color: COLORS.text.primary, marginTop: 0 }}>Find Your Collection Schedule</h3>
+            <Select
+                label="Your Barangay"
+                name="barangay"
+                value={selectedBarangay}
+                onChange={(e) => setSelectedBarangay(e.target.value)}
+                options={barangays.map((b) => ({ value: b.sys_id, label: b.name }))}
+                placeholder="-- Select your Barangay --"
+            />
+
+            {scheduleLoading && <Loading message="Loading schedule..." />}
+
+            {!scheduleLoading && selectedBarangay && schedules.length === 0 && (
+                <p style={{ color: COLORS.text.muted, textAlign: 'center', padding: 20 }}>
+                    No schedules found for this barangay.
+                </p>
+            )}
+
+            {!scheduleLoading && schedules.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                    {schedules.map((item) => (
+                        <div key={item.sys_id} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '10px 12px',
+                            borderBottom: `1px solid ${COLORS.border}`,
+                            borderLeft: `5px solid ${wasteTypeColor[item.waste_type] || COLORS.text.muted}`,
                             margin: '5px 0',
-                            background: '#f9f9f9'
+                            background: COLORS.bg.muted,
+                            borderRadius: 4,
                         }}>
-                            <strong>{item.day}</strong>
-                            <span>{item.type}</span>
+                            <strong style={{ color: COLORS.text.primary }}>{item.day_of_week}</strong>
+                            <span style={{ color: COLORS.text.secondary, fontSize: 13 }}>
+                                {item.time_window_start} - {item.time_window_end}
+                            </span>
+                            <span style={{ color: wasteTypeColor[item.waste_type] || COLORS.text.secondary, fontWeight: 500 }}>
+                                {item.waste_type}
+                            </span>
                         </div>
                     ))}
                 </div>
             )}
-        </div>
+        </Card>
     );
 }

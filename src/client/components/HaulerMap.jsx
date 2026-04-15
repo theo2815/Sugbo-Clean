@@ -1,46 +1,79 @@
 import React from 'react';
+import { COLORS, STOP_STATUSES } from '../../utils/constants';
+import Card from './shared/Card';
 
-export default function HaulerMap() {
-    const stops = [
-        { id: 1, barangay: 'Lahug Proper', time: '08:00 AM', status: 'Passed' },
-        { id: 2, barangay: 'Salinas Dr.', time: '09:30 AM', status: 'In Transit' },
-        { id: 3, barangay: 'Gorordo Ave.', time: '11:00 AM', status: 'Pending' }
-    ];
+const stopStatusColors = {
+    'Passed': COLORS.success,
+    'Current': COLORS.status.inProgress,
+    'Not Arrived': COLORS.text.muted,
+};
 
+export default function HaulerMap({ stops = [], haulerName }) {
     return (
-        <div className="incident-list">
-            <h3>Hauler Route Map (Static)</h3>
-            <div className="card" style={{ padding: '20px', marginBottom: '20px', background: '#e3f2fd', textAlign: 'center' }}>
-                <p>📍 <strong>Current Route:</strong> North District - Route A (Truck #042)</p>
-            </div>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Stop</th>
-                        <th>Location</th>
-                        <th>Est. Time</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {stops.map((stop) => (
-                        <tr key={stop.id}>
-                            <td><strong>{stop.id}</strong></td>
-                            <td>{stop.barangay}</td>
-                            <td>{stop.time}</td>
-                            <td>
-                                <span className={`state-badge ${stop.status === 'Passed' ? 'state-closed' : 'state-in-progress'}`}>
-                                    {stop.status}
+        <div>
+            <Card style={{ marginBottom: 20, background: COLORS.secondaryLight, textAlign: 'center' }}>
+                <p style={{ margin: 0, fontWeight: 600, color: COLORS.secondary }}>
+                    {haulerName ? `Route: ${haulerName}` : 'Hauler Route Map (Static)'}
+                </p>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: COLORS.text.muted }}>
+                    Interactive map coming in Phase 3. Route stops shown below.
+                </p>
+            </Card>
+
+            {stops.length === 0 ? (
+                <p style={{ textAlign: 'center', color: COLORS.text.muted, padding: 20 }}>
+                    No route stops available for this hauler.
+                </p>
+            ) : (
+                <div>
+                    {stops.map((stop) => {
+                        const statusColor = stopStatusColors[stop.stop_status] || COLORS.text.muted;
+                        return (
+                            <div key={stop.sys_id} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 16,
+                                padding: '12px 16px',
+                                borderBottom: `1px solid ${COLORS.border}`,
+                            }}>
+                                <div style={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '50%',
+                                    background: statusColor,
+                                    color: '#fff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    flexShrink: 0,
+                                }}>
+                                    {stop.stop_order}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 600, color: COLORS.text.primary }}>{stop.barangay}</div>
+                                    <div style={{ fontSize: 13, color: COLORS.text.muted }}>Est. arrival: {stop.estimated_arrival}</div>
+                                </div>
+                                <span style={{
+                                    padding: '4px 10px',
+                                    borderRadius: 12,
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    background: `${statusColor}20`,
+                                    color: statusColor,
+                                }}>
+                                    {stop.stop_status}
                                 </span>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            <div style={{ marginTop: '15px', fontStyle: 'italic', color: '#666', fontSize: '12px' }}>
-                *Note: This map shows the pre-planned route. Live GPS tracking is not currently available.
-            </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            <p style={{ marginTop: 15, fontStyle: 'italic', color: COLORS.text.muted, fontSize: 12 }}>
+                *This shows the pre-planned route. Live GPS tracking is not currently available.
+            </p>
         </div>
     );
 }

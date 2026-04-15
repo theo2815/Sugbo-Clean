@@ -1,62 +1,95 @@
-.incident-app {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: "Helvetica Neue", Arial, sans-serif;
+/* ============ BASE STYLES ============ */
+
+* {
+  box-sizing: border-box;
 }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #F8FAFC;
+  color: #0F172A;
+}
+
+/* ============ LAYOUT ============ */
+
+.sugboclean-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-canvas {
+  flex: 1;
+}
+
+/* ============ NAVBAR ============ */
 
 .app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.app-header h1 {
-    margin: 0;
-    color: #2c3e50;
-}
+/* ============ FORM HELPERS ============ */
 
 .create-button {
-    background-color: #4caf50;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
+  background-color: #16A34A;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 .create-button:hover {
-    background-color: #45a049;
+  background-color: #15803D;
 }
 
 .loading {
-    text-align: center;
-    padding: 40px;
-    font-size: 18px;
-    color: #666;
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #94A3B8;
 }
 
 .error-message {
-    background-color: #ffebee;
-    color: #d32f2f;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 4px;
-    border-left: 4px solid #d32f2f;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  background-color: #FEF2F2;
+  color: #EF4444;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #EF4444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.error-message button {
-    background: none;
-    border: none;
-    color: #d32f2f;
-    cursor: pointer;
-    font-weight: bold;
-    text-decoration: underline;
+/* ============ TABLE RESPONSIVE ============ */
+
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-header {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+/* ============ MOBILE (375px) ============ */
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .app-header small {
+    font-size: 0.7rem;
+  }
 }

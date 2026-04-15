@@ -1,72 +1,132 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getBarangays, createReport } from '../../services/api';
+import { COLORS, WASTE_TYPES } from '../../utils/constants';
+import Select from './shared/Select';
+import Input from './shared/Input';
+import TextArea from './shared/TextArea';
+import Button from './shared/Button';
+import Card from './shared/Card';
 
-export default function MissedPickupForm({ onCancel }) {
+export default function MissedPickupForm() {
+    const navigate = useNavigate();
+    const [barangays, setBarangays] = useState([]);
+    const [barangay, setBarangay] = useState('');
+    const [wasteType, setWasteType] = useState('');
+    const [missedDate, setMissedDate] = useState('');
+    const [email, setEmail] = useState('');
+    const [description, setDescription] = useState('');
+    const [submitting, setSubmitting] = useState(false);
     const [submittedCode, setSubmittedCode] = useState(null);
 
-    const handleSubmit = (e) => {
+    useEffect(() => {
+        async function load() {
+            const { result } = await getBarangays();
+            setBarangays(result);
+        }
+        load();
+    }, []);
+
+    async function handleSubmit(e) {
         e.preventDefault();
-        // Generate mock SC code
-        const randomNum = Math.floor(1000 + Math.random() * 9000);
-        setSubmittedCode(`SC-2026-${randomNum}`);
-    };
+        setSubmitting(true);
+        try {
+            const { result } = await createReport({
+                barangay,
+                missed_date: missedDate,
+                waste_type: wasteType,
+                email,
+                description,
+            });
+            setSubmittedCode(result.report_code);
+        } finally {
+            setSubmitting(false);
+        }
+    }
 
     if (submittedCode) {
         return (
-            <div className="form-overlay">
-                <div className="form-container" style={{ textAlign: 'center', padding: '40px' }}>
-                    <span style={{ fontSize: '4rem' }}>✅</span>
-                    <h2 style={{ color: '#4caf50' }}>Report Submitted!</h2>
-                    <p>Please save your reference code:</p>
-                    <div style={{ 
-                        background: '#f0f0f0', 
-                        padding: '20px', 
-                        borderRadius: '8px', 
-                        fontSize: '2.5rem', 
-                        fontWeight: 'bold', 
-                        color: '#004a99',
-                        letterSpacing: '2px',
-                        margin: '20px 0'
-                    }}>
-                        {submittedCode}
-                    </div>
-                    <button className="submit-button" onClick={() => window.navigator.clipboard.writeText(submittedCode)}>
-                        📋 Copy to Clipboard
-                    </button>
-                    <button className="cancel-button" style={{ marginLeft: '10px' }} onClick={onCancel}>
-                        Done
-                    </button>
+            <Card style={{ textAlign: 'center', padding: 40, maxWidth: 500, margin: '0 auto' }}>
+                <span style={{ fontSize: '4rem' }}>&#9989;</span>
+                <h2 style={{ color: COLORS.primary }}>Report Submitted!</h2>
+                <p style={{ color: COLORS.text.secondary }}>Please save your reference code:</p>
+                <div style={{
+                    background: COLORS.bg.muted,
+                    padding: 20,
+                    borderRadius: 8,
+                    fontSize: '2.2rem',
+                    fontWeight: 'bold',
+                    color: COLORS.secondary,
+                    letterSpacing: 2,
+                    margin: '20px 0',
+                    fontFamily: 'monospace',
+                }}>
+                    {submittedCode}
                 </div>
-            </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <Button onClick={() => navigator.clipboard.writeText(submittedCode)} variant="outline">
+                        Copy Code
+                    </Button>
+                    <Button onClick={() => navigate(`/track?code=${submittedCode}`)}>
+                        Track This Report
+                    </Button>
+                </div>
+            </Card>
         );
     }
 
     return (
-        <div className="card">
-            <div className="form-header">
-                <h2>Report Missed Pickup</h2>
-            </div>
+        <Card style={{ maxWidth: 560, margin: '0 auto' }}>
+            <h3 style={{ marginTop: 0, color: COLORS.text.primary }}>Report Missed Pickup</h3>
             <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                    <label>Barangay *</label>
-                    <input type="text" placeholder="e.g. Lahug" required />
-                </div>
-                <div className="form-group">
-                    <label>Waste Type Not Collected *</label>
-                    <select required>
-                        <option value="bio">Biodegradable (Green)</option>
-                        <option value="res">Residual (Black)</option>
-                        <option value="rec">Recyclable (Blue)</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Optional: Additional Details</label>
-                    <textarea rows="3" placeholder="Describe the location or issue..."></textarea>
-                </div>
-                <div className="form-actions" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                    <button type="submit" className="create-button">Submit Report</button>
-                    <button type="button" onClick={onCancel} style={{ background: '#ccc', border: 'none', padding: '10px 15px', borderRadius: '4px' }}>Cancel</button>
+                <Select
+                    label="Barangay"
+                    name="barangay"
+                    value={barangay}
+                    onChange={(e) => setBarangay(e.target.value)}
+                    options={barangays.map((b) => ({ value: b.sys_id, label: b.name }))}
+                    required
+                />
+                <Select
+                    label="Waste Type Not Collected"
+                    name="wasteType"
+                    value={wasteType}
+                    onChange={(e) => setWasteType(e.target.value)}
+                    options={WASTE_TYPES.map((w) => ({ value: w, label: w }))}
+                    required
+                />
+                <Input
+                    label="Missed Date"
+                    name="missedDate"
+                    type="date"
+                    value={missedDate}
+                    onChange={(e) => setMissedDate(e.target.value)}
+                    required
+                />
+                <Input
+                    label="Email (optional)"
+                    name="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                />
+                <TextArea
+                    label="Additional Details (optional)"
+                    name="description"
+                    placeholder="Describe the location or issue..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                />
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                    <Button type="submit" loading={submitting}>
+                        Submit Report
+                    </Button>
+                    <Button variant="ghost" onClick={() => navigate('/resident')}>
+                        Cancel
+                    </Button>
                 </div>
             </form>
-        </div>
+        </Card>
     );
 }
