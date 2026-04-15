@@ -22,7 +22,6 @@ export default function AdminDashboardPage() {
     loadReports();
   }, [loadReports]);
 
-  // Live subscription for status updates
   useEffect(() => {
     const unsub = subscribeToReports(() => {
       loadReports();
@@ -56,10 +55,18 @@ export default function AdminDashboardPage() {
   if (loading) return <Loading message="Loading reports..." />;
 
   return (
-    <div>
+    <div style={styles.page}>
       <MetricsGrid reports={reports} />
-      <FilterBar onFilterChange={handleFilterChange} />
+      <FilterBar onFilterChange={handleFilterChange} resultCount={filtered.length} />
       <ReportsTable reports={filtered} onStatusChange={loadReports} />
     </div>
   );
 }
+
+const styles = {
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 20,
+  },
+};

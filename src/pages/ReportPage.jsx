@@ -1,12 +1,18 @@
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 import MissedPickupForm from '../client/components/MissedPickupForm';
-import BackButton from '../client/components/shared/BackButton';
+import PageHeader from '../client/components/shared/PageHeader';
+import { COLORS } from '../utils/constants';
 
 export default function ReportPage() {
     return (
-        <section style={{ padding: 20, maxWidth: 640, margin: '0 auto' }}>
-            <BackButton label="Back to Landing Page" />
-            <h2>Report a Missed Pickup</h2>
+        <section style={{ padding: '24px 5% 48px', maxWidth: 720, margin: '0 auto' }}>
+            <PageHeader
+                icon={AlertTriangle}
+                title="Report a Missed Pickup"
+                subtitle="Fill out the form below. You'll receive a reference code to track progress."
+                accent={COLORS.warning}
+            />
             <MissedPickupForm />
         </section>
     );

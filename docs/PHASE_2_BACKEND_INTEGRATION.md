@@ -14,15 +14,16 @@ If those two rules held, **Phase 2 should not touch any page component**.
 
 ## Part A — What Phase 2 Must Deliver
 
-1. All 22 endpoints in CLAUDE.md §5 wired and callable from the frontend
+1. All 22 endpoints in fluent folder §5 wired and callable from the frontend
 2. Real Basic Auth for admin users (session-scoped, never committed)
 3. The server-generated `SC-YYYY-NNNN` report code replaces the fake Phase-1 code generator
 4. Admin status updates persist in ServiceNow (resident tracker reflects the change after refetch)
 5. Missed-pickup photo uploads land in the `u_photo` field on the Report record
 6. Reminder email subscriptions create rows in the Reminder Subscription table
 7. Charts in AdminAnalyticsPage render against live report data, not mocks
-8. Every network call is observable — request/response shape handling, error states, retry where appropriate
-9. Environment variables drive the instance URL + credentials (no hardcoded secrets)
+8. The resident `/schedule` page is the single entry point for barangay-specific info — selecting a barangay dynamically loads schedule, assigned hauler, and route stops in one view. The old `/haulers` and `/route-map` resident pages are removed.
+9. Every network call is observable — request/response shape handling, error states, retry where appropriate
+10. Environment variables drive the instance URL + credentials (no hardcoded secrets)
 
 ---
 
@@ -122,9 +123,8 @@ Per CLAUDE.md §9 note 5: ServiceNow returns reference fields with **both** raw 
 - [ ] Audit every page that reads a reference field. Pages that still use the old flat mock shape work unchanged. Pages that broke: fix them now.
 - [ ] Key spots to re-verify:
   - ReportsTable — `report.barangay` rendering
-  - ScheduleChecker — barangay dropdown uses `sys_id` as `<option value>`
-  - RouteMapPage — hauler selector
-  - All CRUD managers — form dropdowns for reference fields
+  - ScheduleChecker — barangay dropdown uses `sys_id` as `<option value>`; resolves hauler + route stops via their `barangay_id`
+  - All CRUD managers (admin) — form dropdowns for reference fields
 
 **Acceptance:** No `[object Object]` appears anywhere in the UI. Reference fields render as human names and submit as `sys_id`s.
 
@@ -208,7 +208,7 @@ ServiceNow attachments go to a separate endpoint: `/api/now/attachment/file`. Tw
 
 ### Milestone 2.7 — CRUD Managers Wired to Real API (Day 5)
 
-**Outcome:** Schedule / Hauler / Route Stop / Waste Item CRUD actually persists.
+**Outcome:** Schedule / Hauler / Route Stop / Waste Item CRUD actually persists. These managers remain on the **admin side** — residents no longer have dedicated Hauler or Route pages; both surface inside the merged Schedule page (see Milestone 2.10).
 
 - [ ] ScheduleManager → `createSchedule`, `updateSchedule`, `deleteSchedule`
 - [ ] HaulerManager → `createHauler`, `updateHauler`, `deleteHauler`
@@ -218,7 +218,7 @@ ServiceNow attachments go to a separate endpoint: `/api/now/attachment/file`. Tw
 - [ ] Confirmation dialog before DELETE (nondestructive UX)
 - [ ] Form validation: required fields match CLAUDE.md §4 table schemas (max lengths, choice values)
 
-**Acceptance:** Create a hauler in the admin UI → see it appear on the resident `/haulers` page after refresh → edit it → refresh → changes persist → delete it → gone.
+**Acceptance:** Create a hauler in admin HaulerManager and assign it to Lahug → open the resident `/schedule` page, select Lahug → the new hauler appears in the schedule page's hauler panel → edit a route stop in admin → refresh the schedule page → the updated stop shows in the route section → delete → gone.
 
 ---
 
@@ -251,7 +251,29 @@ ServiceNow attachments go to a separate endpoint: `/api/now/attachment/file`. Tw
 
 ---
 
-### Milestone 2.10 — Error Handling & UX Polish (Day 7)
+### Milestone 2.10 — Merged Schedule Page Data Fetch (Day 6)
+
+**Outcome:** The resident `/schedule` page is now the single entry point for barangay-specific info. Selecting a barangay dynamically loads its schedule, assigned hauler, and route stops — the old standalone `/haulers` and `/route-map` pages no longer exist.
+
+**Data flow on barangay select:**
+
+Frontend fires three parallel calls through `services/api.js`:
+
+1. `getSchedule(barangaySysId)` → `GET /schedules?barangay={sys_id}` — pickup days, time windows, waste types
+2. `getHaulerByBarangay(barangaySysId)` → `GET /haulers?barangay={sys_id}` — hauler name, contact, vehicle info
+3. `getRouteStops(barangaySysId)` → `GET /route-stops?barangay={sys_id}` — ordered stop list for the static route view
+
+- [ ] Implement all three functions on top of `request()` (Milestone 2.1). Keep signatures stable so `ScheduleChecker` can swap mocks → real calls without structural changes.
+- [ ] Use `Promise.all` on barangay change so the three panels load together. Per-panel skeletons while in flight.
+- [ ] Handle partial failures: if one call fails (e.g., route stops 404 for a barangay with no route yet), render the other two panels and show an empty state in the failing one — never blank the whole page.
+- [ ] Cache the last-selected barangay's payload in memory; if the user toggles back to it, don't refetch within 60s.
+- [ ] Delete `src/pages/HaulersPage.jsx` and `src/pages/RouteMapPage.jsx` (and their routes in the router) if Phase 1 left them behind. Remove any sidebar/nav links to `/haulers` and `/route-map`.
+
+**Acceptance:** On `/schedule`, pick Lahug → schedule table, hauler card, and route stop list all populate in one interaction. No `/haulers` or `/route-map` routes resolve (404 or redirect to `/schedule`).
+
+---
+
+### Milestone 2.11 — Error Handling & UX Polish (Day 7)
 
 **Outcome:** Failures are graceful and informative, not blank screens.
 
@@ -271,16 +293,17 @@ ServiceNow attachments go to a separate endpoint: `/api/now/attachment/file`. Tw
 
 Team member runs through this in order on a fresh `npm run dev`:
 
-1. Go to `/schedule`, pick Lahug → real schedule loads
+1. Go to `/schedule`, pick Lahug → schedule, assigned hauler, and route stops all load in one view
 2. Go to `/report`, submit a missed pickup for Lahug on today's date → receive a real `SC-2026-XXXX`
 3. Copy the code, go to `/track`, enter it → see Pending
 4. Log in as admin at `/admin/login`
 5. In ReportsTable, find the new report → change status to "In Progress"
 6. Open the resident tracker in another tab → within 10s, status flips to "In Progress" (polling)
 7. Change to "Resolved" → tracker flips again
-8. Create a new hauler in HaulerManager → appears on resident `/haulers` page after refresh
+8. Create/assign a hauler to Lahug in admin HaulerManager → return to resident `/schedule`, reselect Lahug → new hauler shows in the hauler panel
 9. Visit `/admin/analytics` → bar/pie/line charts all render with live counts
 10. Log out → visiting `/admin/dashboard` redirects to login
+11. Navigate directly to `/haulers` or `/route-map` → those routes no longer exist (redirect to `/schedule` or 404)
 
 ### D.2 — Backend direct verification
 
@@ -298,22 +321,23 @@ Should return 8 barangays. If not, Phase 2 can't proceed — fix auth / CORS / i
 
 Phase 2 is done when:
 
-1. All 10 manual smoke-test steps in D.1 pass
+1. All 11 manual smoke-test steps in D.1 pass
 2. `.env.local` is the only place the instance password appears (grep confirms)
 3. `src/mocks/` is gone or gated for tests only
-4. The browser Network tab shows one real call per user action, no mocks
+4. The browser Network tab shows one real call per user action (or one `Promise.all` burst for the merged `/schedule` page), no mocks
 5. 401 / 404 / 500 each have a distinct, user-friendly UX path
 6. Photo upload round-trips (submit a JPG, view the attachment in ServiceNow)
 7. Admin status changes propagate to the tracker within 10 seconds
 8. No page component imports from `mocks/` or `data/`
-9. `npm run build` succeeds with zero warnings from our code
+9. No `/haulers` or `/route-map` routes exist in the resident router; those files and nav links are deleted
+10. `npm run build` succeeds with zero warnings from our code
 
 ---
 
 ## Part F — What Phase 2 Does **NOT** Include**
 
 - ❌ OAuth / SSO for admins — still Basic Auth (Phase 3 security hardening)
-- ❌ Real Leaflet map with live truck GPS — still static route stops (Phase 3)
+- ❌ Real Leaflet map with live truck GPS — the route-stop list inside `/schedule` is still static text/markers (Phase 3)
 - ❌ WebSocket push for status updates — still polling (Phase 3 optimization)
 - ❌ Email reminder scheduler wiring — that's a ServiceNow-side scheduled job, not frontend
 - ❌ Rate-limit / retry-with-backoff logic — add only if you observe real failures
@@ -339,7 +363,7 @@ Phase 2 is done when:
 
 Phase 3 scope after this ships:
 
-- Real Leaflet map on `/route-map`
+- Real Leaflet map embedded in the `/schedule` route panel (replacing the static stop list)
 - WebSocket / Server-Sent Events for status updates (replace polling)
 - OAuth for admins
 - Bilingual support (Cebuano / English)

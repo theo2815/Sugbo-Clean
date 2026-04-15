@@ -50,11 +50,14 @@ function Shell() {
     return (
         <div
             className="sugboclean-shell"
-            style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
+            style={isAdminRoute
+                ? { display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }
+                : { display: 'flex', flexDirection: 'column', minHeight: '100vh' }
+            }
         >
             <Navbar isAdmin={isAdminRoute} onTogglePortal={togglePortal} />
 
-            <main className="main-canvas" style={{ flex: 1 }}>
+            <main className="main-canvas" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 <Routes>
                     {/* Resident routes */}
                     <Route path="/" element={<HomePage />} />
@@ -83,7 +86,7 @@ function Shell() {
                 </Routes>
             </main>
 
-            <Footer />
+            {!isAdminRoute && <Footer />}
         </div>
     );
 }

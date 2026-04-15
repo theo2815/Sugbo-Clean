@@ -1,18 +1,26 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import AdminContainer from '../../client/components/layout/AdminContainer';
 import Sidebar from '../../client/components/layout/Sidebar';
 import TopBar from '../../client/components/layout/TopBar';
+import { COLORS } from '../../utils/constants';
 
 export default function AdminLayout() {
   return (
-    <div style={{ display: 'flex', minHeight: 'calc(100vh - 120px)' }}>
+    <AdminContainer>
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
         <TopBar />
-        <div style={{ flex: 1, padding: 20, overflowY: 'auto' }}>
+        <main style={{
+          flex: 1,
+          minHeight: 0,
+          padding: 24,
+          overflowY: 'auto',
+          background: COLORS.bg.page,
+        }}>
           <Outlet />
-        </div>
+        </main>
       </div>
-    </div>
+    </AdminContainer>
   );
 }
