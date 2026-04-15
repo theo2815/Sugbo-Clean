@@ -6,7 +6,10 @@
       "Bash(npm i *)",
       "Bash(rm -f src/client/components/IncidentList.jsx src/client/components/IncidentList.css src/client/components/IncidentForm.jsx src/client/components/IncidentForm.css src/client/services/IncidentService.js)",
       "Bash(rm -f src/pages)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(npm run *)",
+      "Bash(curl *)",
+      "Bash(kill %1)"
     ]
   }
 }

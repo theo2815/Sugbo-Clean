@@ -7,7 +7,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
 import HomePage from '../pages/HomePage';
-import ResidentHubPage from '../pages/ResidentHubPage';
+
 import SchedulePage from '../pages/SchedulePage';
 import ReportPage from '../pages/ReportPage';
 import TrackPage from '../pages/TrackPage';
@@ -33,7 +33,7 @@ function Shell() {
     const isAdminRoute = location.pathname.startsWith('/admin');
 
     const togglePortal = () => {
-        if (isAdminRoute) navigate('/resident');
+        if (isAdminRoute) navigate('/');
         else navigate('/admin/login');
     };
 
@@ -59,7 +59,7 @@ function Shell() {
                 <Routes>
                     {/* Resident routes */}
                     <Route path="/" element={<HomePage />} />
-                    <Route path="/resident" element={<ResidentHubPage />} />
+
                     <Route path="/schedule" element={<SchedulePage />} />
                     <Route path="/report" element={<ReportPage />} />
                     <Route path="/track" element={<TrackPage />} />

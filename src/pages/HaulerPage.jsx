@@ -28,7 +28,7 @@ export default function HaulerPage() {
 
     return (
         <section style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
-            <BackButton label="Back to Resident Hub" />
+            <BackButton label="Back to Landing Page" />
             <h2>Hauler Directory</h2>
             <p style={{ color: COLORS.text.muted, marginBottom: 20 }}>
                 Contracted garbage hauling companies and their contact information.

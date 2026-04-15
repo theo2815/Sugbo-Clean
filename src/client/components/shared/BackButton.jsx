@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { COLORS } from '../../../utils/constants';
 
-export default function BackButton({ to = '/resident', label = 'Back' }) {
+export default function BackButton({ to = '/', label = 'Back' }) {
     const navigate = useNavigate();
 
     return (

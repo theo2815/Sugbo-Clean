@@ -122,7 +122,7 @@ export default function MissedPickupForm() {
                     <Button type="submit" loading={submitting}>
                         Submit Report
                     </Button>
-                    <Button variant="ghost" onClick={() => navigate('/resident')}>
+                    <Button variant="ghost" onClick={() => navigate('/')}>
                         Cancel
                     </Button>
                 </div>

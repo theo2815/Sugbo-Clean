@@ -6,7 +6,7 @@ export default function TrackPage() {
     return (
         <section style={{ padding: 20 }}>
             <div style={{ maxWidth: 600, margin: '0 auto' }}>
-                <BackButton label="Back to Resident Hub" />
+                <BackButton label="Back to Landing Page" />
             </div>
             <ReportTracker />
         </section>

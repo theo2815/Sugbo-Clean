@@ -54,7 +54,7 @@ export default function RouteMapPage() {
 
     return (
         <section style={{ padding: 20, maxWidth: 700, margin: '0 auto' }}>
-            <BackButton to={searchParams.get('hauler') ? '/haulers' : '/resident'} label={searchParams.get('hauler') ? 'Back to Haulers' : 'Back to Resident Hub'} />
+            <BackButton to={searchParams.get('hauler') ? '/haulers' : '/'} label={searchParams.get('hauler') ? 'Back to Haulers' : 'Back to Landing Page'} />
             <h2>Hauler Route Map</h2>
             <Select
                 label="Select Hauler"
