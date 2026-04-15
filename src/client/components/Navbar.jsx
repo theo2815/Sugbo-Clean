@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, AlertTriangle, Search, Recycle, Truck, Menu, X } from 'lucide-react';
+import { Calendar, AlertTriangle, Search, Recycle, Menu, X } from 'lucide-react';
 import { COLORS } from '../../utils/constants';
 
 const RESIDENT_LINKS = [
@@ -8,7 +8,7 @@ const RESIDENT_LINKS = [
     { to: '/report', label: 'Report Missed Pickup', icon: AlertTriangle },
     { to: '/track', label: 'Track My Report', icon: Search },
     { to: '/waste-guide', label: 'Waste Sorting Guide', icon: Recycle },
-    { to: '/haulers', label: 'Hauler Directory', icon: Truck },
+
 ];
 
 export default function Navbar({ isAdmin, onTogglePortal }) {

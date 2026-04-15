@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Calendar, AlertTriangle, Search, Recycle, Truck,
+    Calendar, AlertTriangle, Search, Recycle,
     ClipboardList, MessageSquare, CheckCircle2, ArrowRight,
 } from 'lucide-react';
 import { COLORS, BIN_TYPES } from '../../utils/constants';
@@ -15,7 +15,7 @@ const QUICK_ACTIONS = [
     { to: '/report', label: 'Report Missed Pickup', desc: 'File a new report in under a minute', icon: AlertTriangle, accent: COLORS.warning },
     { to: '/track', label: 'Track My Report', desc: 'See live status with your code', icon: Search, accent: COLORS.secondary },
     { to: '/waste-guide', label: 'Waste Sorting Guide', desc: 'Learn what goes in each bin', icon: Recycle, accent: COLORS.status.resolved },
-    { to: '/haulers', label: 'Hauler Directory', desc: 'Contact your collection team', icon: Truck, accent: COLORS.text.secondary },
+
 ];
 
 const HOW_IT_WORKS = [

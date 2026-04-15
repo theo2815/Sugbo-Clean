@@ -34,6 +34,12 @@ export async function getHaulers() {
   return { result: [...haulers] };
 }
 
+export async function getHaulerByName(name) {
+  await delay(150);
+  const hauler = haulers.find((h) => h.name === name);
+  return { result: hauler ? { ...hauler } : null };
+}
+
 export async function getSchedules(barangayId) {
   await delay();
   let filtered = [...schedules];

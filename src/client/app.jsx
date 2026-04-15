@@ -12,8 +12,7 @@ import SchedulePage from '../pages/SchedulePage';
 import ReportPage from '../pages/ReportPage';
 import TrackPage from '../pages/TrackPage';
 import WasteGuidePage from '../pages/WasteGuidePage';
-import HaulerPage from '../pages/HaulerPage';
-import RouteMapPage from '../pages/RouteMapPage';
+
 
 import LoginPage from '../pages/admin/LoginPage';
 import AdminLayout from '../pages/admin/AdminLayout';
@@ -64,8 +63,7 @@ function Shell() {
                     <Route path="/report" element={<ReportPage />} />
                     <Route path="/track" element={<TrackPage />} />
                     <Route path="/waste-guide" element={<WasteGuidePage />} />
-                    <Route path="/haulers" element={<HaulerPage />} />
-                    <Route path="/route-map" element={<RouteMapPage />} />
+
 
                     {/* Admin login (public) */}
                     <Route path="/admin/login" element={<LoginPage />} />

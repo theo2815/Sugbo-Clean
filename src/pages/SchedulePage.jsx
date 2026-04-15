@@ -5,7 +5,7 @@ import BackButton from '../client/components/shared/BackButton';
 
 export default function SchedulePage() {
     return (
-        <section style={{ padding: 20, maxWidth: 640, margin: '0 auto' }}>
+        <section style={{ padding: 20, maxWidth: 960, margin: '0 auto' }}>
             <BackButton label="Back to Landing Page" />
             <h2>Pickup Schedule</h2>
             <ScheduleChecker />
