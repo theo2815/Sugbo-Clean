@@ -8,7 +8,7 @@ Record({
         access_control_allow_headers: 'Authorization, Content-Type, Accept',
         active: 'true',
         delete: 'true',
-        domain: '127.0.0.1:3000',
+        domain: 'http://127.0.0.1:3000',
         for_embeddables: 'false',
         get: 'true',
         max_age: '3600',
