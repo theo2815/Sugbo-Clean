@@ -3,14 +3,19 @@ import { COLORS } from '../../../utils/constants';
 
 export default function Loading({ message = 'Loading...' }) {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 40,
-      color: COLORS.text.muted,
-    }}>
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={message}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 40,
+        color: COLORS.text.muted,
+      }}
+    >
       <div style={{
         width: 32,
         height: 32,

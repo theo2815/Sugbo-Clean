@@ -12,17 +12,26 @@ export default function LoginPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [flash, setFlash] = useState(() => {
+        const m = sessionStorage.getItem('sc_flash');
+        if (m) sessionStorage.removeItem('sc_flash');
+        return m || '';
+    });
+    const [loading, setLoading] = useState(false);
 
     if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
         setError('');
-        const success = login(username, password);
-        if (success) {
+        setLoading(true);
+        try {
+            await login(username, password);
             navigate('/admin/dashboard');
-        } else {
-            setError('Invalid credentials. Try admin / admin.');
+        } catch (err) {
+            setError(err.message || 'Invalid credentials. Please try again.');
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -35,8 +44,21 @@ export default function LoginPage() {
 
             <Card>
                 <form onSubmit={handleSubmit}>
+                    {flash && !error && (
+                        <div role="status" aria-live="polite" style={{
+                            padding: '10px 14px',
+                            background: '#FEF3C7',
+                            border: `1px solid ${COLORS.warning}`,
+                            borderRadius: 8,
+                            color: '#92400E',
+                            fontSize: 14,
+                            marginBottom: 16,
+                        }}>
+                            {flash}
+                        </div>
+                    )}
                     {error && (
-                        <div style={{
+                        <div role="alert" aria-live="assertive" style={{
                             padding: '10px 14px',
                             background: '#FEF2F2',
                             border: `1px solid ${COLORS.error}`,
@@ -65,7 +87,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                     />
-                    <Button type="submit" style={{ width: '100%' }}>
+                    <Button type="submit" loading={loading} disabled={loading} style={{ width: '100%' }}>
                         Sign In
                     </Button>
                 </form>

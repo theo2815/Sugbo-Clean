@@ -1,21 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Copy, CalendarDays, MapPin, SearchX } from 'lucide-react';
-import { getReportByCode, subscribeToReports } from '../../../services/api';
+import { Search, Copy, CalendarDays, MapPin, SearchX, RotateCcw } from 'lucide-react';
+import { getReportByCode, ApiError } from '../../../services/api';
 import { COLORS } from '../../../utils/constants';
 import StatusStepper from './StatusStepper';
 import Button from '../shared/Button';
 import Card from '../shared/Card';
 import EmptyState from '../shared/EmptyState';
 
+function formatAgo(ts) {
+  if (!ts) return '';
+  const secs = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (secs < 5) return 'just now';
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  return `${mins}m ago`;
+}
+
 export default function ReportTracker() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [report, setReport] = useState(null);
-  const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState(null); // { kind: 'notFound' | 'network', message }
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     const queryCode = searchParams.get('code');
@@ -25,29 +36,49 @@ export default function ReportTracker() {
     }
   }, []);
 
+  // Poll every 10s when a report is loaded so updates appear without manual refresh.
   useEffect(() => {
-    const unsubscribe = subscribeToReports((reports) => {
-      if (report) {
-        const updated = reports.find((r) => r.report_code === report.report_code);
-        if (updated && updated.status !== report.status) {
-          setReport({ ...updated });
+    if (!report) return;
+    const reportCode = report.report_code;
+    const interval = setInterval(async () => {
+      try {
+        const { result } = await getReportByCode(reportCode);
+        if (result) {
+          setReport(result);
+          setLastUpdated(Date.now());
         }
+      } catch {
+        // Silently ignore polling errors — user can still manually re-search.
       }
-    });
-    return unsubscribe;
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [report?.report_code]);
+
+  // Re-render every 5s so "Xs ago" label stays current without re-fetching.
+  useEffect(() => {
+    if (!report) return;
+    const tick = setInterval(() => setTick((t) => t + 1), 5000);
+    return () => clearInterval(tick);
   }, [report]);
 
   async function doSearch(searchCode) {
     const trimmed = (searchCode || code).trim();
     if (!trimmed) return;
     setLoading(true);
-    setNotFound(false);
+    setError(null);
     try {
       const { result } = await getReportByCode(trimmed);
       setReport(result);
-    } catch {
+      setLastUpdated(Date.now());
+    } catch (err) {
       setReport(null);
-      setNotFound(true);
+      if (err instanceof ApiError && err.isNotFound) {
+        setError({ kind: 'notFound' });
+      } else if (err instanceof ApiError && err.isNetwork) {
+        setError({ kind: 'network', message: err.message });
+      } else {
+        setError({ kind: 'network', message: err?.message || 'Something went wrong. Please try again.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -133,15 +164,22 @@ export default function ReportTracker() {
             alignItems: 'center', flexWrap: 'wrap', gap: 8,
             paddingBottom: 12, borderBottom: `1px solid ${COLORS.border}`,
           }}>
-            <span style={{
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              fontSize: '1.05rem',
-              color: COLORS.text.primary,
-              letterSpacing: 1,
-            }}>
-              {report.report_code}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{
+                fontFamily: 'monospace',
+                fontWeight: 700,
+                fontSize: '1.05rem',
+                color: COLORS.text.primary,
+                letterSpacing: 1,
+              }}>
+                {report.report_code}
+              </span>
+              {lastUpdated && (
+                <span aria-live="polite" style={{ fontSize: 11, color: COLORS.text.muted }}>
+                  Last updated {formatAgo(lastUpdated)}
+                </span>
+              )}
+            </div>
             <Button variant="outline" size="sm" onClick={handleCopy}>
               <Copy size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />
               {copied ? 'Copied!' : 'Copy'}
@@ -174,7 +212,7 @@ export default function ReportTracker() {
         </Card>
       )}
 
-      {notFound && (
+      {error?.kind === 'notFound' && (
         <EmptyState
           icon={SearchX}
           title="No report found"
@@ -189,6 +227,22 @@ export default function ReportTracker() {
             </Button>
           }
         />
+      )}
+
+      {error?.kind === 'network' && (
+        <div role="alert" aria-live="assertive" style={{
+          padding: 16, border: `1px solid ${COLORS.error}`, background: '#FEF2F2',
+          borderRadius: 10, color: COLORS.error, display: 'flex',
+          justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: 14 }}>
+            {error.message || 'Something went wrong. Please try again.'}
+          </span>
+          <Button variant="outline" size="sm" onClick={() => doSearch()}>
+            <RotateCcw size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+            Retry
+          </Button>
+        </div>
       )}
     </div>
   );

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Phone, Truck, CalendarDays, Clock, Navigation } from 'lucide-react';
-import { getBarangays, getSchedules, getHaulerByName, getRouteStops } from '../../services/api';
+import { getBarangays, getBarangayBundle } from '../../services/api';
 import { COLORS } from '../../utils/constants';
 import Select from './shared/Select';
 import Loading from './shared/Loading';
 import Card from './shared/Card';
 import EmptyState from './shared/EmptyState';
+import { SkeletonRows } from './shared/Skeleton';
 
 const stopStatusColors = {
     'Passed': COLORS.success,
@@ -64,39 +65,28 @@ export default function ScheduleChecker() {
             setRouteStops([]);
             return;
         }
+        let cancelled = false;
         async function loadAll() {
             setScheduleLoading(true);
             setRouteLoading(true);
-            try {
-                const { result: scheduleResult } = await getSchedules(selectedBarangay);
-                setSchedules(scheduleResult);
-
-                const haulerName = scheduleResult.length > 0 ? scheduleResult[0].hauler : null;
-                if (haulerName) {
-                    const { result: haulerResult } = await getHaulerByName(haulerName);
-                    setHauler(haulerResult);
-                    if (haulerResult) {
-                        const { result: stops } = await getRouteStops(haulerResult.sys_id);
-                        setRouteStops(stops);
-                    } else {
-                        setRouteStops([]);
-                    }
-                } else {
-                    setHauler(null);
-                    setRouteStops([]);
-                }
-            } finally {
-                setScheduleLoading(false);
-                setRouteLoading(false);
-            }
+            // Merged bundle fetch — uses a 60s cache so toggling between the
+            // same barangay doesn't re-hit the network.
+            const bundle = await getBarangayBundle(selectedBarangay);
+            if (cancelled) return;
+            setSchedules(bundle.schedules);
+            setHauler(bundle.hauler);
+            setRouteStops(bundle.routeStops);
+            setScheduleLoading(false);
+            setRouteLoading(false);
         }
         loadAll();
+        return () => { cancelled = true; };
     }, [selectedBarangay]);
 
     if (loading) return <Loading message="Loading barangays..." />;
 
-    const barangayName = barangays.find(b => b.sys_id === selectedBarangay)?.name;
-    const myStop = routeStops.find(s => s.barangay === barangayName);
+    // Route stops are already filtered by barangay — first entry is the relevant stop.
+    const myStop = routeStops[0] || null;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -128,7 +118,7 @@ export default function ScheduleChecker() {
                 <Card>
                     <SectionTitle icon={CalendarDays}>Pickup Days</SectionTitle>
 
-                    {scheduleLoading && <Loading message="Loading schedule..." />}
+                    {scheduleLoading && <SkeletonRows rows={3} columns={3} />}
 
                     {!scheduleLoading && schedules.length === 0 && (
                         <EmptyState
