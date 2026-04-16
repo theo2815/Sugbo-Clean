@@ -731,6 +731,24 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list_element'
+                        id: '2e46802d93944710153ffdc9dd03d62f'
+                        key: {
+                            list_id: {
+                                id: '1d0c06b093980310153ffdc9dd03d6be'
+                                key: {
+                                    name: 'x_1986056_sugbocle_barangay'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_longitude'
+                        }
+                    },
+                    {
                         table: 'sys_security_acl_role'
                         id: '2f3689b893500310153ffdc9dd03d6e2'
                         key: {
@@ -1032,6 +1050,15 @@ declare global {
                         id: '730351d6bdf84da2a3e5ab40c0d92467'
                         key: {
                             name: 'x_1986056_sugbocle_incident_manager.do - BYOUI Files'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: '7481d009bafb415496230af83b0f5de4'
+                        key: {
+                            name: 'x_1986056_sugbocle_barangay'
+                            element: 'u_latitude'
+                            language: 'en'
                         }
                     },
                     {
@@ -1338,6 +1365,32 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_dictionary'
+                        id: 'a6063775229f4ddaae960b76daf265d8'
+                        key: {
+                            name: 'x_1986056_sugbocle_barangay'
+                            element: 'u_longitude'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: 'a646802d93944710153ffdc9dd03d62f'
+                        key: {
+                            list_id: {
+                                id: '1d0c06b093980310153ffdc9dd03d6be'
+                                key: {
+                                    name: 'x_1986056_sugbocle_barangay'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_latitude'
+                        }
+                    },
+                    {
                         table: 'sys_security_acl_role'
                         id: 'afe54d7893500310153ffdc9dd03d629'
                         key: {
@@ -1348,6 +1401,15 @@ declare global {
                                     name: 'x_1986056_sugbocle.admin'
                                 }
                             }
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: 'b23aa9801f7045b58a9be95320276158'
+                        key: {
+                            name: 'x_1986056_sugbocle_barangay'
+                            element: 'u_longitude'
+                            language: 'en'
                         }
                     },
                     {
@@ -1434,6 +1496,14 @@ declare global {
                                     name: 'x_1986056_sugbocle.admin'
                                 }
                             }
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: 'c94d8a415f9346ddbc66f9fbfdb00605'
+                        key: {
+                            name: 'x_1986056_sugbocle_barangay'
+                            element: 'u_latitude'
                         }
                     },
                     {

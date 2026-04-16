@@ -9,7 +9,9 @@
         list.push({
             sys_id: gr.getUniqueValue(),
             name: gr.getValue('u_name'),
-            zone: gr.getValue('u_zone')
+            zone: gr.getValue('u_zone'),
+            latitude: parseFloat(gr.getValue('u_latitude')) || null,
+            longitude: parseFloat(gr.getValue('u_longitude')) || null
         });
     }
 

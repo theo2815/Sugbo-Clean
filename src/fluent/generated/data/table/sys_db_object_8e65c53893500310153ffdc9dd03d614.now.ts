@@ -1,4 +1,4 @@
-import { Table } from '@servicenow/sdk/core'
+import { FloatColumn, Table } from '@servicenow/sdk/core'
 
 export const x_1986056_sugbocle_barangay = Table({
     actions: ['read', 'update', 'create'],
@@ -11,5 +11,22 @@ export const x_1986056_sugbocle_barangay = Table({
     },
     label: 'Barangay',
     name: 'x_1986056_sugbocle_barangay',
-    schema: {},
+    schema: {
+        u_longitude: FloatColumn({
+            label: [
+                {
+                    label: 'longitude',
+                },
+            ],
+            maxLength: 255,
+        }),
+        u_latitude: FloatColumn({
+            label: [
+                {
+                    label: 'latitude',
+                },
+            ],
+            maxLength: 255,
+        }),
+    },
 })
