@@ -65,6 +65,10 @@ declare global {
                         table: 'sys_security_acl'
                         id: '1dc5457893500310153ffdc9dd03d680'
                     }
+                    '1eb002d593940710153ffdc9dd03d6bd': {
+                        table: 'sys_cors_rule'
+                        id: '1eb002d593940710153ffdc9dd03d6bd'
+                    }
                     '1fe50d7893500310153ffdc9dd03d6cf': {
                         table: 'sys_security_acl'
                         id: '1fe50d7893500310153ffdc9dd03d6cf'
@@ -161,6 +165,10 @@ declare global {
                         table: 'sys_security_acl'
                         id: '4fe5c97893500310153ffdc9dd03d6f8'
                     }
+                    '5151425993940710153ffdc9dd03d6bf': {
+                        table: 'sys_cors_rule'
+                        id: '5151425993940710153ffdc9dd03d6bf'
+                    }
                     '52649ef093d80310153ffdc9dd03d6b6': {
                         table: 'sys_ws_operation'
                         id: '52649ef093d80310153ffdc9dd03d6b6'
@@ -249,6 +257,10 @@ declare global {
                         table: 'sys_ui_element'
                         id: '85ff49bc93900310153ffdc9dd03d642'
                     }
+                    '8861829993940710153ffdc9dd03d6ab': {
+                        table: 'sys_cors_rule'
+                        id: '8861829993940710153ffdc9dd03d6ab'
+                    }
                     '88d59eb493d80310153ffdc9dd03d630': {
                         table: 'sys_ws_operation'
                         id: '88d59eb493d80310153ffdc9dd03d630'
@@ -324,6 +336,10 @@ declare global {
                     c46601f893500310153ffdc9dd03d6c6: {
                         table: 'sys_security_acl'
                         id: 'c46601f893500310153ffdc9dd03d6c6'
+                    }
+                    c5e81f059390c310153ffdc9dd03d6c4: {
+                        table: 'sys_cors_rule'
+                        id: 'c5e81f059390c310153ffdc9dd03d6c4'
                     }
                     c5ff49bc93900310153ffdc9dd03d644: {
                         table: 'sys_ui_element'
