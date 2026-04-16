@@ -1,53 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { getHaulers, createHauler, updateHauler, deleteHauler } from '../../../services/api';
+import { getHaulers, getBarangays, createHauler, updateHauler, deleteHauler } from '../../../services/api';
 import { COLORS } from '../../../utils/constants';
 import Button from '../shared/Button';
 import Input from '../shared/Input';
+import Select from '../shared/Select';
 import TextArea from '../shared/TextArea';
 import Loading from '../shared/Loading';
+import ConfirmDialog from '../shared/ConfirmDialog';
+
+const EMPTY_FORM = { name: '', contact_number: '', areas_covered: '', barangay: '' };
 
 export default function HaulerManager() {
   const [items, setItems] = useState([]);
+  const [barangays, setBarangays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', contact_number: '', areas_covered: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
-    const { result } = await getHaulers();
-    setItems(result);
+    const [haulRes, brgyRes] = await Promise.all([getHaulers(), getBarangays()]);
+    setItems(haulRes.result);
+    setBarangays(brgyRes.result);
     setLoading(false);
   }
 
   function openNew() {
-    setForm({ name: '', contact_number: '', areas_covered: '' });
+    setForm(EMPTY_FORM);
     setEditing(null);
+    setError('');
     setShowForm(true);
   }
 
   function openEdit(item) {
-    setForm({ name: item.name, contact_number: item.contact_number, areas_covered: item.areas_covered });
+    setForm({
+      name: item.name,
+      contact_number: item.contact_number,
+      areas_covered: item.areas_covered,
+      barangay: item.barangay_id || '',
+    });
     setEditing(item.sys_id);
+    setError('');
     setShowForm(true);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (editing) {
-      await updateHauler(editing, form);
-    } else {
-      await createHauler(form);
+    setSubmitting(true);
+    setError('');
+    try {
+      if (editing) await updateHauler(editing, form);
+      else await createHauler(form);
+      setShowForm(false);
+      await load();
+    } catch (err) {
+      setError(err?.message || 'Save failed. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    setShowForm(false);
-    load();
   }
 
-  async function handleDelete(sysId) {
-    await deleteHauler(sysId);
-    load();
+  async function confirmDelete() {
+    const sysId = confirm.sysId;
+    setSubmitting(true);
+    try {
+      await deleteHauler(sysId);
+      setConfirm(null);
+      await load();
+    } catch (err) {
+      setError(err?.message || 'Delete failed.');
+      setConfirm(null);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (loading) return <Loading message="Loading haulers..." />;
@@ -62,12 +93,26 @@ export default function HaulerManager() {
       {showForm && (
         <div style={{ padding: 16, marginBottom: 16, border: `1px solid ${COLORS.border}`, borderRadius: 10, background: COLORS.bg.muted }}>
           <form onSubmit={handleSubmit}>
-            <Input label="Name" name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <Input label="Contact Number" name="contact_number" value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} required />
-            <TextArea label="Areas Covered" name="areas_covered" value={form.areas_covered} onChange={(e) => setForm({ ...form, areas_covered: e.target.value })} placeholder="e.g. Lahug, Mabolo, Banilad" required />
+            {error && (
+              <div role="alert" aria-live="assertive" style={{
+                padding: '10px 14px', background: '#FEF2F2', border: `1px solid ${COLORS.error}`,
+                borderRadius: 8, color: COLORS.error, fontSize: 13, marginBottom: 12,
+              }}>{error}</div>
+            )}
+            <Input label="Name" name="name" maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <Input label="Contact Number" name="contact_number" maxLength={40} value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} required />
+            <Select
+              label="Assigned Barangay"
+              name="barangay"
+              value={form.barangay}
+              onChange={(e) => setForm({ ...form, barangay: e.target.value })}
+              options={barangays.map((b) => ({ value: b.sys_id, label: b.name }))}
+              required
+            />
+            <TextArea label="Areas Covered" name="areas_covered" maxLength={500} value={form.areas_covered} onChange={(e) => setForm({ ...form, areas_covered: e.target.value })} placeholder="e.g. Lahug, Mabolo, Banilad" required />
             <div style={{ display: 'flex', gap: 8 }}>
-              <Button type="submit" size="sm">{editing ? 'Update' : 'Create'}</Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button type="submit" size="sm" loading={submitting} disabled={submitting}>{editing ? 'Update' : 'Create'}</Button>
+              <Button variant="ghost" size="sm" type="button" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</Button>
             </div>
           </form>
         </div>
@@ -78,23 +123,38 @@ export default function HaulerManager() {
       ) : (
         <table style={tableStyles.table}>
           <thead>
-            <tr>{['Name', 'Contact', 'Areas Covered', 'Actions'].map((h) => <th key={h} style={tableStyles.th}>{h}</th>)}</tr>
+            <tr>{['Name', 'Barangay', 'Contact', 'Areas Covered', 'Actions'].map((h) => <th key={h} style={tableStyles.th}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.sys_id}>
                 <td style={tableStyles.td}>{item.name}</td>
+                <td style={tableStyles.td}>{item.barangay || '—'}</td>
                 <td style={tableStyles.td}>{item.contact_number}</td>
                 <td style={tableStyles.td}>{item.areas_covered}</td>
                 <td style={tableStyles.td}>
                   <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(item.sys_id)} style={{ color: COLORS.error }}>Delete</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirm({ sysId: item.sys_id, name: item.name })}
+                    style={{ color: COLORS.error }}
+                  >Delete</Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={!!confirm}
+        title="Delete hauler?"
+        message={confirm ? `"${confirm.name}" will be removed. Schedules and route stops assigned to this hauler will no longer resolve.` : ''}
+        loading={submitting}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   );
 }

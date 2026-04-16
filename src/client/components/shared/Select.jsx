@@ -1,6 +1,9 @@
-import React from 'react';
-import { COLORS } from '../../../utils/constants';
+import React, { useCallback } from 'react';
+import Dropdown from './Dropdown';
 
+// Backwards-compatible wrapper around Dropdown. Existing callers pass an
+// event-shaped onChange (`(e) => e.target.value`); we synthesise a minimal
+// event so they keep working without per-file edits.
 export default function Select({
   label,
   name,
@@ -9,47 +12,27 @@ export default function Select({
   options = [],
   placeholder = '-- Select --',
   required = false,
+  error,
+  size = 'md',
   style,
-  ...rest
+  disabled,
 }) {
+  const handleChange = useCallback((nextValue) => {
+    onChange?.({ target: { name, value: nextValue } });
+  }, [onChange, name]);
+
   return (
-    <div style={{ marginBottom: 16, ...style }}>
-      {label && (
-        <label htmlFor={name} style={{
-          display: 'block',
-          marginBottom: 6,
-          fontSize: 14,
-          fontWeight: 500,
-          color: COLORS.text.primary,
-        }}>
-          {label}{required && ' *'}
-        </label>
-      )}
-      <select
-        id={name}
-        name={name}
-        value={value}
-        onChange={onChange}
-        required={required}
-        style={{
-          width: '100%',
-          padding: '10px 12px',
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 8,
-          fontSize: 14,
-          color: COLORS.text.primary,
-          background: '#fff',
-          boxSizing: 'border-box',
-        }}
-        {...rest}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Dropdown
+      label={label ? `${label}${required ? ' *' : ''}` : undefined}
+      name={name}
+      value={value || null}
+      onChange={handleChange}
+      options={options}
+      placeholder={placeholder}
+      error={error}
+      disabled={disabled}
+      size={size}
+      style={style}
+    />
   );
 }

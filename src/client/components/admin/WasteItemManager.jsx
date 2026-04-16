@@ -6,13 +6,19 @@ import Input from '../shared/Input';
 import Select from '../shared/Select';
 import TextArea from '../shared/TextArea';
 import Loading from '../shared/Loading';
+import ConfirmDialog from '../shared/ConfirmDialog';
+
+const EMPTY_FORM = { name: '', bin_type: '', bin_color: '', disposal_instructions: '' };
 
 export default function WasteItemManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', bin_type: '', bin_color: '', disposal_instructions: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -24,14 +30,16 @@ export default function WasteItemManager() {
   }
 
   function openNew() {
-    setForm({ name: '', bin_type: '', bin_color: '', disposal_instructions: '' });
+    setForm(EMPTY_FORM);
     setEditing(null);
+    setError('');
     setShowForm(true);
   }
 
   function openEdit(item) {
     setForm({ name: item.name, bin_type: item.bin_type, bin_color: item.bin_color, disposal_instructions: item.disposal_instructions });
     setEditing(item.sys_id);
+    setError('');
     setShowForm(true);
   }
 
@@ -42,18 +50,33 @@ export default function WasteItemManager() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (editing) {
-      await updateWasteItem(editing, form);
-    } else {
-      await createWasteItem(form);
+    setSubmitting(true);
+    setError('');
+    try {
+      if (editing) await updateWasteItem(editing, form);
+      else await createWasteItem(form);
+      setShowForm(false);
+      await load();
+    } catch (err) {
+      setError(err?.message || 'Save failed.');
+    } finally {
+      setSubmitting(false);
     }
-    setShowForm(false);
-    load();
   }
 
-  async function handleDelete(sysId) {
-    await deleteWasteItem(sysId);
-    load();
+  async function confirmDelete() {
+    const sysId = confirm.sysId;
+    setSubmitting(true);
+    try {
+      await deleteWasteItem(sysId);
+      setConfirm(null);
+      await load();
+    } catch (err) {
+      setError(err?.message || 'Delete failed.');
+      setConfirm(null);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (loading) return <Loading message="Loading waste items..." />;
@@ -68,8 +91,14 @@ export default function WasteItemManager() {
       {showForm && (
         <div style={{ padding: 16, marginBottom: 16, border: `1px solid ${COLORS.border}`, borderRadius: 10, background: COLORS.bg.muted }}>
           <form onSubmit={handleSubmit}>
+            {error && (
+              <div role="alert" aria-live="assertive" style={{
+                padding: '10px 14px', background: '#FEF2F2', border: `1px solid ${COLORS.error}`,
+                borderRadius: 8, color: COLORS.error, fontSize: 13, marginBottom: 12,
+              }}>{error}</div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' }}>
-              <Input label="Name" name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              <Input label="Name" name="name" maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
               <Select
                 name="bin_type"
                 label="Bin Type"
@@ -82,14 +111,15 @@ export default function WasteItemManager() {
             <TextArea
               label="Disposal Instructions"
               name="disposal_instructions"
+              maxLength={500}
               value={form.disposal_instructions}
               onChange={(e) => setForm({ ...form, disposal_instructions: e.target.value })}
               placeholder="How should this item be disposed?"
               required
             />
             <div style={{ display: 'flex', gap: 8 }}>
-              <Button type="submit" size="sm">{editing ? 'Update' : 'Create'}</Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button type="submit" size="sm" loading={submitting} disabled={submitting}>{editing ? 'Update' : 'Create'}</Button>
+              <Button variant="ghost" size="sm" type="button" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</Button>
             </div>
           </form>
         </div>
@@ -116,13 +146,27 @@ export default function WasteItemManager() {
                 <td style={{ ...tableStyles.td, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.disposal_instructions}</td>
                 <td style={tableStyles.td}>
                   <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(item.sys_id)} style={{ color: COLORS.error }}>Delete</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirm({ sysId: item.sys_id, name: item.name })}
+                    style={{ color: COLORS.error }}
+                  >Delete</Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={!!confirm}
+        title="Delete waste item?"
+        message={confirm ? `"${confirm.name}" will be removed from the waste guide.` : ''}
+        loading={submitting}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   );
 }

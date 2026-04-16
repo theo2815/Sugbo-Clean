@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { getBarangays } from '../../../services/api';
 import { COLORS, STATUS } from '../../../utils/constants';
+import Dropdown from '../shared/Dropdown';
 
 export default function FilterBar({ onFilterChange, resultCount }) {
   const [barangays, setBarangays] = useState([]);
@@ -47,6 +48,16 @@ export default function FilterBar({ onFilterChange, resultCount }) {
     if (key === 'search') applyChange({ search: '' });
   }
 
+  const statusOptions = useMemo(() => ([
+    { value: 'ALL', label: 'All Status' },
+    ...Object.values(STATUS).map((s) => ({ value: s, label: s })),
+  ]), []);
+
+  const barangayOptions = useMemo(() => ([
+    { value: 'ALL', label: 'All Barangays' },
+    ...barangays.map((b) => ({ value: b.name, label: b.name })),
+  ]), [barangays]);
+
   return (
     <div style={styles.wrap}>
       <div style={styles.row}>
@@ -73,28 +84,22 @@ export default function FilterBar({ onFilterChange, resultCount }) {
 
         <div style={styles.selectGroup}>
           <SlidersHorizontal size={15} color={COLORS.text.muted} />
-          <select
-            style={styles.select}
+          <Dropdown
+            options={statusOptions}
             value={status}
-            onChange={(e) => applyChange({ status: e.target.value })}
-            aria-label="Filter by status"
-          >
-            <option value="ALL">All Status</option>
-            {Object.values(STATUS).map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-          <select
-            style={styles.select}
+            onChange={(v) => applyChange({ status: v })}
+            size="sm"
+            fullWidth={false}
+            style={{ minWidth: 150 }}
+          />
+          <Dropdown
+            options={barangayOptions}
             value={barangay}
-            onChange={(e) => applyChange({ barangay: e.target.value })}
-            aria-label="Filter by barangay"
-          >
-            <option value="ALL">All Barangays</option>
-            {barangays.map((b) => (
-              <option key={b.sys_id} value={b.name}>{b.name}</option>
-            ))}
-          </select>
+            onChange={(v) => applyChange({ barangay: v })}
+            size="sm"
+            fullWidth={false}
+            style={{ minWidth: 170 }}
+          />
         </div>
       </div>
 

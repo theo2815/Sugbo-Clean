@@ -1,5 +1,16 @@
-// Design tokens and enums — single source of truth for the entire app.
+// Design tokens, enums, and API config — single source of truth for the entire app.
 // Status/choice values use the real ServiceNow API format (Title Case).
+
+export const API = {
+  instance: '',
+  base: '/api/x_1986056_sugbocle/sugboclean_api',
+  get url() { return this.base; },
+};
+
+// True when running behind the NowSDK dev proxy (localhost dev server).
+// The proxy already authenticates as admin — client-side auth headers are unnecessary and cause 400s.
+export const IS_DEV_PROXY = typeof window !== 'undefined'
+  && ['localhost', '[::1]', '127.0.0.1'].includes(window.location.hostname);
 
 export const COLORS = {
   primary: '#16A34A',

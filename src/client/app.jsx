@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import { setUnauthorizedHandler } from '../services/api';
 import PrivateRoute from './components/shared/PrivateRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -29,6 +30,7 @@ import './app.css';
 function Shell() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { isAdmin, logout } = useAuth();
     const isAdminRoute = location.pathname.startsWith('/admin');
 
     const togglePortal = () => {
@@ -46,6 +48,18 @@ function Shell() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [navigate]);
+
+    // Any 401 from an authenticated API call ends the admin session. Flash is
+    // read once by LoginPage and cleared.
+    useEffect(() => {
+        setUnauthorizedHandler(() => {
+            if (!isAdmin) return;
+            logout();
+            sessionStorage.setItem('sc_flash', 'Your session expired. Please sign in again.');
+            navigate('/admin/login');
+        });
+        return () => setUnauthorizedHandler(null);
+    }, [isAdmin, logout, navigate]);
 
     return (
         <div

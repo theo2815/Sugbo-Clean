@@ -18,14 +18,3 @@ export function getBinColor(binType) {
   return COLORS.bin[binType] || COLORS.text.muted;
 }
 
-let reportCounter = 0;
-
-export function generateReportCode() {
-  reportCounter += 1;
-  const num = String(reportCounter).padStart(4, '0');
-  return `SC-2026-${num}`;
-}
-
-export function initReportCounter(existingCount) {
-  reportCounter = existingCount;
-}

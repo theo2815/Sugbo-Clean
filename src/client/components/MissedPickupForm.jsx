@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Copy, ArrowRight, Info } from 'lucide-react';
-import { getBarangays, createReport } from '../../services/api';
+import { getBarangays, createReport, uploadReportPhoto } from '../../services/api';
 import { COLORS, WASTE_TYPES } from '../../utils/constants';
 import Select from './shared/Select';
 import Input from './shared/Input';
@@ -37,7 +37,12 @@ export default function MissedPickupForm() {
     const [missedDate, setMissedDate] = useState('');
     const [email, setEmail] = useState('');
     const [description, setDescription] = useState('');
+    const [photo, setPhoto] = useState(null);
+    const [photoError, setPhotoError] = useState('');
+    const [submitError, setSubmitError] = useState('');
+    const [photoWarning, setPhotoWarning] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [uploadPct, setUploadPct] = useState(null);
     const [submittedCode, setSubmittedCode] = useState(null);
     const [copied, setCopied] = useState(false);
 
@@ -49,9 +54,30 @@ export default function MissedPickupForm() {
         load();
     }, []);
 
+    function handlePhotoChange(e) {
+        setPhotoError('');
+        const file = e.target.files[0];
+        if (!file) { setPhoto(null); return; }
+        if (!file.type.startsWith('image/')) {
+            setPhotoError('Please select an image file.');
+            e.target.value = '';
+            setPhoto(null);
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setPhotoError('Photo must be 5 MB or smaller.');
+            e.target.value = '';
+            setPhoto(null);
+            return;
+        }
+        setPhoto(file);
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setSubmitting(true);
+        setSubmitError('');
+        setPhotoWarning('');
         try {
             const { result } = await createReport({
                 barangay,
@@ -60,7 +86,19 @@ export default function MissedPickupForm() {
                 email,
                 description,
             });
+            if (photo && result.sys_id) {
+                setUploadPct(0);
+                try {
+                    await uploadReportPhoto(result.sys_id, photo, (pct) => setUploadPct(pct));
+                } catch {
+                    setPhotoWarning('Report saved, but the photo could not be attached. You can re-submit with the photo later.');
+                } finally {
+                    setUploadPct(null);
+                }
+            }
             setSubmittedCode(result.report_code);
+        } catch (err) {
+            setSubmitError(err?.message || 'Could not submit your report. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -103,6 +141,20 @@ export default function MissedPickupForm() {
                 }}>
                     {submittedCode}
                 </div>
+                {photoWarning && (
+                    <div role="alert" style={{
+                        background: '#FEF3C7',
+                        border: `1px solid ${COLORS.warning}`,
+                        color: '#92400E',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        fontSize: 13,
+                        marginBottom: 14,
+                        textAlign: 'left',
+                    }}>
+                        {photoWarning}
+                    </div>
+                )}
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                     <Button onClick={handleCopy} variant="outline">
                         <Copy size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
@@ -136,6 +188,19 @@ export default function MissedPickupForm() {
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
+                {submitError && (
+                    <div role="alert" style={{
+                        background: '#FEF2F2',
+                        border: `1px solid ${COLORS.error}`,
+                        color: COLORS.error,
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        fontSize: 14,
+                        marginBottom: 16,
+                    }}>
+                        {submitError}
+                    </div>
+                )}
                 <FieldGroup title="Location & Waste">
                     <Select
                         label="Barangay *"
@@ -180,6 +245,42 @@ export default function MissedPickupForm() {
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                     />
+                    <div>
+                        <label style={{
+                            display: 'block', fontSize: 14, fontWeight: 500,
+                            color: COLORS.text.primary, marginBottom: 6,
+                        }}>
+                            Photo (optional, max 5 MB)
+                        </label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoChange}
+                            style={{ fontSize: 13, color: COLORS.text.secondary }}
+                        />
+                        {photoError && (
+                            <p role="alert" aria-live="assertive" style={{ margin: '4px 0 0', fontSize: 12, color: COLORS.error }}>
+                                {photoError}
+                            </p>
+                        )}
+                        {uploadPct !== null && (
+                            <div aria-live="polite" style={{ marginTop: 8 }}>
+                                <div style={{
+                                    height: 6, background: COLORS.bg.muted, borderRadius: 999, overflow: 'hidden',
+                                }}>
+                                    <div style={{
+                                        height: '100%',
+                                        width: `${uploadPct}%`,
+                                        background: COLORS.primary,
+                                        transition: 'width 0.15s linear',
+                                    }} />
+                                </div>
+                                <div style={{ fontSize: 11, color: COLORS.text.muted, marginTop: 4 }}>
+                                    Uploading photo… {uploadPct}%
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </FieldGroup>
 
                 <div style={{

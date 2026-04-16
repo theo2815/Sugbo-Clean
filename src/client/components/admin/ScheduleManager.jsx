@@ -4,6 +4,9 @@ import { COLORS, WASTE_TYPES, DAYS_OF_WEEK } from '../../../utils/constants';
 import Button from '../shared/Button';
 import Select from '../shared/Select';
 import Loading from '../shared/Loading';
+import ConfirmDialog from '../shared/ConfirmDialog';
+
+const EMPTY_FORM = { barangay: '', hauler: '', waste_type: '', day_of_week: '', time_window_start: '', time_window_end: '' };
 
 export default function ScheduleManager() {
   const [items, setItems] = useState([]);
@@ -12,7 +15,10 @@ export default function ScheduleManager() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ barangay: '', hauler: '', waste_type: '', day_of_week: '', time_window_start: '', time_window_end: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -26,40 +32,55 @@ export default function ScheduleManager() {
   }
 
   function openNew() {
-    setForm({ barangay: '', hauler: '', waste_type: '', day_of_week: '', time_window_start: '', time_window_end: '' });
+    setForm(EMPTY_FORM);
     setEditing(null);
+    setError('');
     setShowForm(true);
   }
 
   function openEdit(item) {
-    const brgy = barangays.find((b) => b.name === item.barangay);
-    const haul = haulers.find((h) => h.name === item.hauler);
     setForm({
-      barangay: brgy?.sys_id || '',
-      hauler: haul?.sys_id || '',
+      barangay: item.barangay_id || '',
+      hauler: item.hauler_id || '',
       waste_type: item.waste_type,
       day_of_week: item.day_of_week,
       time_window_start: item.time_window_start,
       time_window_end: item.time_window_end,
     });
     setEditing(item.sys_id);
+    setError('');
     setShowForm(true);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (editing) {
-      await updateSchedule(editing, form);
-    } else {
-      await createSchedule(form);
+    setSubmitting(true);
+    setError('');
+    try {
+      if (editing) await updateSchedule(editing, form);
+      else await createSchedule(form);
+      setShowForm(false);
+      await load();
+    } catch (err) {
+      setError(err?.message || 'Save failed.');
+    } finally {
+      setSubmitting(false);
     }
-    setShowForm(false);
-    load();
   }
 
-  async function handleDelete(sysId) {
-    await deleteSchedule(sysId);
-    load();
+  async function confirmDelete() {
+    const sysId = confirm.sysId;
+    setSubmitting(true);
+    try {
+      await deleteSchedule(sysId);
+      setConfirm(null);
+      await load();
+    } catch (err) {
+      setError(err?.message || 'Delete failed.');
+      setConfirm(null);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (loading) return <Loading message="Loading schedules..." />;
@@ -74,6 +95,12 @@ export default function ScheduleManager() {
       {showForm && (
         <div style={formStyles.card}>
           <form onSubmit={handleSubmit}>
+            {error && (
+              <div role="alert" aria-live="assertive" style={{
+                padding: '10px 14px', background: '#FEF2F2', border: `1px solid ${COLORS.error}`,
+                borderRadius: 8, color: COLORS.error, fontSize: 13, marginBottom: 12,
+              }}>{error}</div>
+            )}
             <div style={formStyles.grid}>
               <Select name="barangay" label="Barangay" value={form.barangay} onChange={(e) => setForm({ ...form, barangay: e.target.value })} options={barangays.map((b) => ({ value: b.sys_id, label: b.name }))} required />
               <Select name="hauler" label="Hauler" value={form.hauler} onChange={(e) => setForm({ ...form, hauler: e.target.value })} options={haulers.map((h) => ({ value: h.sys_id, label: h.name }))} required />
@@ -89,8 +116,8 @@ export default function ScheduleManager() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <Button type="submit" size="sm">{editing ? 'Update' : 'Create'}</Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button type="submit" size="sm" loading={submitting} disabled={submitting}>{editing ? 'Update' : 'Create'}</Button>
+              <Button variant="ghost" size="sm" type="button" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</Button>
             </div>
           </form>
         </div>
@@ -113,13 +140,27 @@ export default function ScheduleManager() {
                 <td style={tableStyles.td}>{item.time_window_start} - {item.time_window_end}</td>
                 <td style={tableStyles.td}>
                   <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(item.sys_id)} style={{ color: COLORS.error }}>Delete</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirm({ sysId: item.sys_id, label: `${item.barangay} · ${item.day_of_week} · ${item.waste_type}` })}
+                    style={{ color: COLORS.error }}
+                  >Delete</Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={!!confirm}
+        title="Delete schedule?"
+        message={confirm ? `"${confirm.label}" will be removed from the weekly schedule.` : ''}
+        loading={submitting}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   );
 }

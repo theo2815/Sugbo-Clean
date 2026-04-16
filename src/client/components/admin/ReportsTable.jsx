@@ -5,6 +5,10 @@ import { COLORS, STATUS } from '../../../utils/constants';
 import { formatDate } from '../../../utils/helpers';
 import StatusPill from '../shared/StatusPill';
 import EmptyState from '../shared/EmptyState';
+import Dropdown from '../shared/Dropdown';
+import ReportDetailDrawer from './ReportDetailDrawer';
+
+const STATUS_OPTIONS = Object.values(STATUS).map((s) => ({ value: s, label: s }));
 
 const NEXT_STATUS = {
   [STATUS.PENDING]: { label: 'Start', next: STATUS.IN_PROGRESS, icon: Play, color: COLORS.status.inProgress },
@@ -13,6 +17,7 @@ const NEXT_STATUS = {
 
 export default function ReportsTable({ reports, onStatusChange }) {
   const [updatingId, setUpdatingId] = useState(null);
+  const [detail, setDetail] = useState(null);
 
   async function setStatus(report, newStatus) {
     setUpdatingId(report.sys_id);
@@ -68,7 +73,16 @@ export default function ReportsTable({ reports, onStatusChange }) {
                     onMouseOver={(e) => (e.currentTarget.style.background = COLORS.bg.muted)}
                     onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <td style={{ ...styles.td, ...styles.code }}>{report.report_code}</td>
+                    <td style={{ ...styles.td, ...styles.code }}>
+                      <button
+                        type="button"
+                        onClick={() => setDetail(report)}
+                        style={styles.codeBtn}
+                        aria-label={`Open details for ${report.report_code}`}
+                      >
+                        {report.report_code}
+                      </button>
+                    </td>
                     <td style={styles.td}>{report.barangay}</td>
                     <td style={{ ...styles.td, color: COLORS.text.secondary }}>
                       {formatDate(report.missed_date)}
@@ -98,17 +112,15 @@ export default function ReportsTable({ reports, onStatusChange }) {
                             {next.label}
                           </button>
                         )}
-                        <select
+                        <Dropdown
+                          options={STATUS_OPTIONS}
                           value={report.status}
-                          onChange={(e) => setStatus(report, e.target.value)}
+                          onChange={(v) => setStatus(report, v)}
                           disabled={isUpdating}
-                          aria-label={`Change status for ${report.report_code}`}
-                          style={styles.select}
-                        >
-                          {Object.values(STATUS).map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
+                          size="sm"
+                          fullWidth={false}
+                          align="right"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -118,6 +130,8 @@ export default function ReportsTable({ reports, onStatusChange }) {
           </table>
         </div>
       )}
+
+      <ReportDetailDrawer report={detail} onClose={() => setDetail(null)} />
     </div>
   );
 }
@@ -192,6 +206,16 @@ const styles = {
     fontWeight: 700,
     letterSpacing: 0.5,
   },
+  codeBtn: {
+    background: 'transparent',
+    border: 'none',
+    padding: 0,
+    color: COLORS.secondary,
+    font: 'inherit',
+    cursor: 'pointer',
+    textDecoration: 'underline dotted',
+    textUnderlineOffset: 2,
+  },
   wasteTag: {
     display: 'inline-block',
     padding: '2px 8px',
@@ -220,14 +244,5 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'background 0.12s ease',
-  },
-  select: {
-    padding: '5px 8px',
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 8,
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    background: '#fff',
-    cursor: 'pointer',
   },
 };
