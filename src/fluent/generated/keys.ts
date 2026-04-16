@@ -45,6 +45,10 @@ declare global {
                         table: 'sys_ws_operation'
                         id: '0f8552b493d80310153ffdc9dd03d6dc'
                     }
+                    '10e61f1193504710153ffdc9dd03d6a6': {
+                        table: 'sys_scope_privilege'
+                        id: '10e61f1193504710153ffdc9dd03d6a6'
+                    }
                     '15c5457893500310153ffdc9dd03d68c': {
                         table: 'sys_security_acl'
                         id: '15c5457893500310153ffdc9dd03d68c'
@@ -56,6 +60,14 @@ declare global {
                     '180216bc93980310153ffdc9dd03d68f': {
                         table: 'sys_scope_privilege'
                         id: '180216bc93980310153ffdc9dd03d68f'
+                    }
+                    '1a5148a193944710153ffdc9dd03d6dd': {
+                        table: 'sys_scope_privilege'
+                        id: '1a5148a193944710153ffdc9dd03d6dd'
+                    }
+                    '1ce6535193504710153ffdc9dd03d654': {
+                        table: 'sys_scope_privilege'
+                        id: '1ce6535193504710153ffdc9dd03d654'
                     }
                     '1d14deb093d80310153ffdc9dd03d6ea': {
                         table: 'sys_ws_operation'
@@ -93,6 +105,10 @@ declare global {
                         table: 'sys_security_acl'
                         id: '286641f893500310153ffdc9dd03d6cc'
                     }
+                    '2a5148a193944710153ffdc9dd03d6f0': {
+                        table: 'sys_scope_privilege'
+                        id: '2a5148a193944710153ffdc9dd03d6f0'
+                    }
                     '2a839e7093d80310153ffdc9dd03d62e': {
                         table: 'sys_ws_operation'
                         id: '2a839e7093d80310153ffdc9dd03d62e'
@@ -120,6 +136,10 @@ declare global {
                     '399c46f093980310153ffdc9dd03d6db': {
                         table: 'sys_ui_element'
                         id: '399c46f093980310153ffdc9dd03d6db'
+                    }
+                    '3b974cad93944710153ffdc9dd03d6ae': {
+                        table: 'sys_ws_operation'
+                        id: '3b974cad93944710153ffdc9dd03d6ae'
                     }
                     '3e16d2f493d80310153ffdc9dd03d610': {
                         table: 'sys_ws_operation'
@@ -180,6 +200,10 @@ declare global {
                     '5416c1b893500310153ffdc9dd03d693': {
                         table: 'sys_security_acl'
                         id: '5416c1b893500310153ffdc9dd03d693'
+                    }
+                    '54e6535193504710153ffdc9dd03d65a': {
+                        table: 'sys_scope_privilege'
+                        id: '54e6535193504710153ffdc9dd03d65a'
                     }
                     '5c75893893500310153ffdc9dd03d65e': {
                         table: 'sys_security_acl'
@@ -249,6 +273,10 @@ declare global {
                         table: 'sys_ui_element'
                         id: '81ff49bc93900310153ffdc9dd03d645'
                     }
+                    '825f935193904710153ffdc9dd03d6ce': {
+                        table: 'sys_scope_privilege'
+                        id: '825f935193904710153ffdc9dd03d6ce'
+                    }
                     '83e50d7893500310153ffdc9dd03d697': {
                         table: 'sys_security_acl'
                         id: '83e50d7893500310153ffdc9dd03d697'
@@ -272,6 +300,10 @@ declare global {
                     '8be512f493d80310153ffdc9dd03d656': {
                         table: 'sys_ws_operation'
                         id: '8be512f493d80310153ffdc9dd03d656'
+                    }
+                    '8db7c0ed93944710153ffdc9dd03d663': {
+                        table: 'sys_ws_operation'
+                        id: '8db7c0ed93944710153ffdc9dd03d663'
                     }
                     '8dff49bc93900310153ffdc9dd03d647': {
                         table: 'sys_ui_element'
@@ -305,9 +337,17 @@ declare global {
                         table: 'sys_security_acl'
                         id: 'a986c5f893500310153ffdc9dd03d663'
                     }
+                    aa5148a193944710153ffdc9dd03d6ec: {
+                        table: 'sys_scope_privilege'
+                        id: 'aa5148a193944710153ffdc9dd03d6ec'
+                    }
                     b4c5057893500310153ffdc9dd03d6e6: {
                         table: 'sys_ui_section'
                         id: 'b4c5057893500310153ffdc9dd03d6e6'
+                    }
+                    b56780ad93944710153ffdc9dd03d612: {
+                        table: 'sys_ws_operation'
+                        id: 'b56780ad93944710153ffdc9dd03d612'
                     }
                     bb36c9b893500310153ffdc9dd03d64a: {
                         table: 'sys_security_acl'
@@ -360,6 +400,14 @@ declare global {
                     cc75893893500310153ffdc9dd03d632: {
                         table: 'sys_security_acl'
                         id: 'cc75893893500310153ffdc9dd03d632'
+                    }
+                    cd945bd193580710153ffdc9dd03d6ad: {
+                        table: 'sys_scope_privilege'
+                        id: 'cd945bd193580710153ffdc9dd03d6ad'
+                    }
+                    cd949b1d93104710153ffdc9dd03d65b: {
+                        table: 'sys_scope_privilege'
+                        id: 'cd949b1d93104710153ffdc9dd03d65b'
                     }
                     cdff49bc93900310153ffdc9dd03d63d: {
                         table: 'sys_ui_element'
