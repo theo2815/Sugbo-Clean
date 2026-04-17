@@ -6,6 +6,11 @@
   <!-- Initialize globals and Include ServiceNow's required scripts -->
   <sdk:now-ux-globals></sdk:now-ux-globals>
 
+  <!-- Leaflet CSS via CDN — NowSDK's bundler mangles path separators when the
+       CSS is JS-imported (generated keys.ts registers both '/' and '\\' variants
+       and serves a slash-stripped URL). Pinning to 1.9.4 to match package.json. -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
   <!-- Include your React entry point -->
   <script src="./main.jsx" type="module"></script>
 </head>

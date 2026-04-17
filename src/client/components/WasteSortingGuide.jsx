@@ -180,8 +180,10 @@ export default function WasteSortingGuide() {
                     gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
                     gap: 20,
                 }}>
-                    {Object.entries(grouped).map(([binType, binItems]) => (
-                        <Card key={binType} accentColor={COLORS.bin[binType]}>
+                    {Object.entries(grouped).map(([binType, binItems]) => {
+                        const binKey = binType.charAt(0).toUpperCase() + binType.slice(1).toLowerCase();
+                        return (
+                        <Card key={binType} accentColor={COLORS.bin[binKey]}>
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -233,7 +235,8 @@ export default function WasteSortingGuide() {
                                 ))}
                             </ul>
                         </Card>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

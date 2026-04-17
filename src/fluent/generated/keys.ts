@@ -85,6 +85,10 @@ declare global {
                         table: 'sys_security_acl'
                         id: '1fe50d7893500310153ffdc9dd03d6cf'
                     }
+                    '2365093893500310153ffdc9dd03d6e3': {
+                        table: 'sys_embedded_help_role'
+                        id: '2365093893500310153ffdc9dd03d6e3'
+                    }
                     '2365493893500310153ffdc9dd03d64f': {
                         table: 'sys_security_acl'
                         id: '2365493893500310153ffdc9dd03d64f'
@@ -224,6 +228,10 @@ declare global {
                     '6b3689b893500310153ffdc9dd03d6b4': {
                         table: 'sys_security_acl'
                         id: '6b3689b893500310153ffdc9dd03d6b4'
+                    }
+                    '6b65093893500310153ffdc9dd03d6ee': {
+                        table: 'sys_embedded_help_role'
+                        id: '6b65093893500310153ffdc9dd03d6ee'
                     }
                     '6c16c1b893500310153ffdc9dd03d6b3': {
                         table: 'sys_security_acl'
@@ -699,6 +707,14 @@ declare global {
                                 }
                             }
                             element: 'u_day_of_week'
+                        }
+                    },
+                    {
+                        table: 'sys_choice_set'
+                        id: '19d081318d5d4780b2072a7239c3f0b2'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_point_type'
                         }
                     },
                     {

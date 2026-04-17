@@ -18,12 +18,16 @@ const NEXT_STATUS = {
 export default function ReportsTable({ reports, onStatusChange }) {
   const [updatingId, setUpdatingId] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [statusError, setStatusError] = useState(null);
 
   async function setStatus(report, newStatus) {
     setUpdatingId(report.sys_id);
+    setStatusError(null);
     try {
       await updateReportStatus(report.sys_id, newStatus);
       if (onStatusChange) await onStatusChange();
+    } catch (err) {
+      setStatusError(err?.message || 'Failed to update status. Please try again.');
     } finally {
       setUpdatingId(null);
     }
@@ -35,6 +39,24 @@ export default function ReportsTable({ reports, onStatusChange }) {
 
   return (
     <div style={styles.container}>
+      {statusError && (
+        <div role="alert" style={{
+          padding: '10px 16px', background: '#FEF2F2', borderBottom: `1px solid ${COLORS.error}`,
+          color: COLORS.error, fontSize: 13, display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', gap: 8,
+        }}>
+          <span>{statusError}</span>
+          <button
+            onClick={() => setStatusError(null)}
+            style={{
+              background: 'none', border: 'none', color: COLORS.error,
+              cursor: 'pointer', fontWeight: 600, fontSize: 12,
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div style={styles.header}>
         <div>
           <h3 style={styles.title}>Reports</h3>

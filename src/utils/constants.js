@@ -4,7 +4,7 @@
 export const API = {
   instance: '',
   base: '/api/x_1986056_sugbocle/sugboclean_api',
-  get url() { return this.base; },
+  get url() { return this.instance + this.base; },
 };
 
 // True when running behind the NowSDK dev proxy (localhost dev server).

@@ -78,6 +78,23 @@ async function request(path, { method = 'GET', body } = {}) {
   return json.result !== undefined ? json.result : json;
 }
 
+// ============ AUTH ============
+// Verifies API reachability and — when a Basic header is provided — credential validity.
+// Deliberately bypasses request(): at login time a 401 means "bad credentials", not
+// "session expired", so it must not fire the global unauthorized handler.
+export async function verifyAuth(authHeader) {
+  const headers = { Accept: 'application/json' };
+  if (authHeader && !IS_DEV_PROXY) headers.Authorization = authHeader;
+
+  let res;
+  try {
+    res = await fetch(`${API.url}/barangays`, { headers });
+  } catch {
+    throw new ApiError(0, 'Network error.');
+  }
+  if (!res.ok) throw new ApiError(res.status, res.statusText || `Request failed (${res.status})`);
+}
+
 // ============ CACHE ============
 // Small in-memory cache for the last-selected barangay's merged payload.
 // Invalidated on ttl expiry; 60s is enough for a resident checking pickup info.
@@ -112,9 +129,9 @@ export async function getHaulers() {
   return { result: normalizeList(data.result) };
 }
 
-// Used by ScheduleChecker (Milestone 2.10): one hauler per barangay.
+// Used by ScheduleChecker + RouteBuilder: one hauler per barangay.
 export async function getHaulerByBarangay(barangaySysId) {
-  const data = await request(`/haulers?barangay=${encodeURIComponent(barangaySysId)}`);
+  const data = await request(`/haulers?barangay_id=${encodeURIComponent(barangaySysId)}`);
   const list = normalizeList(data.result);
   return { result: list[0] || null };
 }
@@ -128,7 +145,7 @@ export async function getBarangayBundle(barangaySysId) {
   const [schedRes, haulerRes, stopsRes] = await Promise.allSettled([
     getSchedules(barangaySysId),
     getHaulerByBarangay(barangaySysId),
-    getRouteStops(barangaySysId),
+    getRouteStops({ barangayId: barangaySysId }),
   ]);
 
   const bundle = {
@@ -152,7 +169,7 @@ export async function getHaulerByName(name) {
   return { result: all.find((h) => h.name === name) || null };
 }
 
-// barangayId optional — omit to fetch all (used by ScheduleManager admin).
+// barangayId optional — omit to fetch all (used by RouteEditor admin).
 export async function getSchedules(barangayId) {
   const path = barangayId
     ? `/schedules?barangay=${encodeURIComponent(barangayId)}`
@@ -183,11 +200,14 @@ export async function getWasteItems(search, binType) {
   return { result: normalizeList(data.result) };
 }
 
-// barangaySysId optional — omit to fetch all (used by RouteStopManager admin).
-export async function getRouteStops(barangaySysId) {
-  const path = barangaySysId
-    ? `/route-stops?barangay=${encodeURIComponent(barangaySysId)}`
-    : '/route-stops';
+// Accepts { haulerId, barangayId } — both optional. Backend supports either
+// or both as filters; omit both to fetch all stops.
+export async function getRouteStops({ haulerId, barangayId } = {}) {
+  const params = new URLSearchParams();
+  if (haulerId) params.set('hauler_id', haulerId);
+  if (barangayId) params.set('barangay_id', barangayId);
+  const qs = params.toString();
+  const path = qs ? `/route-stops?${qs}` : '/route-stops';
   const data = await request(path);
   return { result: normalizeList(data.result).sort((a, b) => (a.stop_order || 0) - (b.stop_order || 0)) };
 }
@@ -277,7 +297,7 @@ export async function createSchedule(data) {
 }
 
 export async function updateSchedule(sysId, data) {
-  const res = await request(`/schedules/${sysId}`, { method: 'PATCH', body: data });
+  const res = await request(`/schedules/${sysId}`, { method: 'PUT', body: data });
   return { result: normalizeRecord(res.result) };
 }
 
@@ -293,7 +313,7 @@ export async function createHauler(data) {
 }
 
 export async function updateHauler(sysId, data) {
-  const res = await request(`/haulers/${sysId}`, { method: 'PATCH', body: data });
+  const res = await request(`/haulers/${sysId}`, { method: 'PUT', body: data });
   return { result: normalizeRecord(res.result) };
 }
 
@@ -309,7 +329,7 @@ export async function createRouteStop(data) {
 }
 
 export async function updateRouteStop(sysId, data) {
-  const res = await request(`/route-stops/${sysId}`, { method: 'PATCH', body: data });
+  const res = await request(`/route-stops/${sysId}`, { method: 'PUT', body: data });
   return { result: normalizeRecord(res.result) };
 }
 
@@ -325,10 +345,41 @@ export async function createWasteItem(data) {
 }
 
 export async function updateWasteItem(sysId, data) {
-  const res = await request(`/waste-items/${sysId}`, { method: 'PATCH', body: data });
+  const res = await request(`/waste-items/${sysId}`, { method: 'PUT', body: data });
   return { result: normalizeRecord(res.result) };
 }
 
 export async function deleteWasteItem(sysId) {
   return request(`/waste-items/${sysId}`, { method: 'DELETE' });
 }
+
+// ============ GENERIC CRUD FACTORY ============
+// Returns { list, get, create, update, remove } for a REST resource. Each method
+// goes through request() and applies the standard normalisation. Used for new
+// resources to avoid restating the same five-method boilerplate.
+export function crud(resource) {
+  const base = `/${resource}`;
+  return {
+    async list() {
+      const res = await request(base);
+      return { result: normalizeList(res.result) };
+    },
+    async get(sysId) {
+      const res = await request(`${base}/${sysId}`);
+      return { result: normalizeRecord(res.result) };
+    },
+    async create(data) {
+      const res = await request(base, { method: 'POST', body: data });
+      return { result: normalizeRecord(res.result) };
+    },
+    async update(sysId, data) {
+      const res = await request(`${base}/${sysId}`, { method: 'PUT', body: data });
+      return { result: normalizeRecord(res.result) };
+    },
+    async remove(sysId) {
+      return request(`${base}/${sysId}`, { method: 'DELETE' });
+    },
+  };
+}
+
+export const barangayAPI = crud('barangays');

@@ -1,9 +1,14 @@
 import React from 'react';
 import { COLORS, BIN_COLOR_MAP } from '../../../utils/constants';
 
+function titleCase(str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : str;
+}
+
 export default function BinColorTag({ binType }) {
-  const hex = COLORS.bin[binType] || COLORS.text.muted;
-  const colorName = BIN_COLOR_MAP[binType] || binType;
+  const key = titleCase(binType);
+  const hex = COLORS.bin[key] || COLORS.text.muted;
+  const colorName = BIN_COLOR_MAP[key] || key;
 
   return (
     <span style={{

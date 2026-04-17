@@ -12,6 +12,28 @@ If any Phase 2 item is still flaky, fix it first — Phase 3 assumes a stable fo
 
 ---
 
+## Progress Snapshot (2026-04-17)
+
+| Milestone | Status | Notes |
+| --- | --- | --- |
+| 3.1 Interactive Route Map | ✅ Shipped | `RouteMap.jsx` lives in `shared/` (used by both resident + admin), not `resident/`. Barangay `u_latitude` / `u_longitude` in place. Markers colored by `point_type` (Start / Stop / End), **not** by `u_stop_status` — re-evaluate once real status lifecycle is wired. |
+| 3.2 Real-Time Status Updates | 🔴 Not started | Still on Phase-2 10s polling in `ReportTracker.jsx`. |
+| 3.3 OAuth 2.0 Admin Login | 🔴 Not started | Basic Auth pilot still active via `AuthContext.jsx` + `verifyAuth()`. |
+| 3.4 Bilingual (Ceb + En) | 🔴 Not started | No i18n library installed; all copy hardcoded in English. |
+| 3.5 Offline-First PWA | 🔴 Not started | No service worker, no manifest yet. |
+| 3.6 Performance Pass | 🔴 Not started | No Lighthouse CI, no code-splitting on admin. |
+| 3.7 Analytics Enhancements | 🟡 Partial | Base Recharts dashboard wired (bar / pie / line). Period comparison, drill-down, CSV export, time-to-resolution, hauler perf table, saved presets — not started. |
+| 3.8 Production Deployment | 🔴 Not started | Still dev-instance only. No Sentry, no CI/CD, no uptime monitor. |
+
+**Bonus work completed beyond this plan (2026-04-17):**
+- Admin visual Route Builder (`RouteBuilder.jsx`) with Set Start / Add Stop / Set End tools, draggable pins, inline `HaulerScheduleManager` for schedules CRUD. Not in the original Phase 3 plan but needed once route stops gained per-stop lat/lng + label (see `PHASE_2_BACKEND_INTEGRATION.md` and vault decisions for 2026-04-17).
+- Data model shift: one hauler ↔ one barangay; `route_stop.barangay` is now immutable and inherited from the hauler. Simplified the map UX and retired the `barangay`-PATCH blocker.
+- Glide time serialization helpers centralized in `src/utils/helpers.js` (`toGlideTime` / `fromGlideTime` / `formatTime12h`) — write sends `HH:MM:SS`, display renders 12-hour `10:00 PM`.
+- All four legacy update endpoints (`updateHauler` / `updateWasteItem` / `updateSchedule` / `updateRouteStop`) migrated `PATCH → PUT` to match the `crud()` factory convention; only `PATCH /reports/{id}/status` remains.
+- Orphan cleanup: deleted `admin/ScheduleManager.jsx` + `admin/RouteStopManager.jsx` (superseded), and the `src/mocks/` folder is gone.
+
+---
+
 ## Part A — What Phase 3 Must Deliver
 
 1. **Interactive Leaflet map** on `/route-map` with numbered stops, dashed route line, clickable pins
@@ -29,30 +51,32 @@ If any Phase 2 item is still flaky, fix it first — Phase 3 assumes a stable fo
 
 ### Milestone 3.1 — Interactive Route Map (Day 1–3)
 
-**Outcome:** `/route-map` replaces the Phase-1 placeholder with a real Leaflet map that visualizes a hauler's full collection route across Cebu City barangays.
+**Status:** ✅ **Shipped 2026-04-17.** Deviations: `RouteMap.jsx` landed in `src/client/components/shared/` (used by both resident `ScheduleChecker` and admin `RouteBuilder`), not `src/client/components/resident/`. Markers are colored by `point_type` (Start = green, Stop = blue, End = red) rather than by `u_stop_status`, because the real status lifecycle (Not Arrived / Current / Passed) isn't being driven yet — promote to status-based coloring when Milestone 3.2 lands real-time updates. Route_stop gained its own `u_latitude` / `u_longitude` so pins snap to actual street addresses, not just the barangay centroid.
 
-**Context:** The `x_1986056_sugbocle_route_stop` table holds ordered stops per hauler (`u_stop_order`, `u_estimated_arrival`, `u_stop_status`). Each stop references a `u_barangay` but barangays don't currently store lat/lng.
+**Context:** The `x_1986056_sugbocle_route_stop` table holds ordered stops per hauler (`u_stop_order`, `u_estimated_arrival`, `u_stop_status`, plus `u_latitude` / `u_longitude` / `u_label` / `u_point_type` added during Phase 2 §10 sweep). Each stop references a `u_barangay` but barangays store lat/lng on `u_latitude` / `u_longitude` (floating point) for map centering.
 
-- [ ] **Extend the Barangay table** (ServiceNow side):
-  - Add `u_latitude` (Decimal, 10,6)
-  - Add `u_longitude` (Decimal, 10,6)
-  - Seed coordinates for all 8 barangays in CLAUDE.md §8 (Lahug ≈ `10.340, 123.900`, etc.)
-- [ ] **Install Leaflet:** `npm i leaflet react-leaflet`
-- [ ] **Build `<RouteMap />`** under `src/client/components/resident/RouteMap.jsx`:
-  - `<MapContainer>` centered on Cebu City (`10.3157, 123.8854`), zoom 12
-  - OpenStreetMap tile layer (free, no API key required)
-  - `<Marker>` per route stop, numbered label based on `u_stop_order`
-  - `<Polyline>` (dashed) connecting stops in order
-  - `<Popup>` on click showing barangay name, ETA, stop status pill
-  - Color-code markers by `u_stop_status`: grey = Not Arrived, green = Current, dark = Passed
-- [ ] **Responsive sizing:** full-width on mobile, fixed height 500px on desktop
-- [ ] **Fallback:** if a route stop's barangay has no lat/lng, show it in the list below the map but not on the map (don't crash)
+- [x] **Extend the Barangay table** (ServiceNow side):
+  - [x] Add `u_latitude` (Floating Point) — shipped as Floating Point rather than Decimal(10,6)
+  - [x] Add `u_longitude` (Floating Point)
+  - [ ] Seed coordinates for all 8 barangays — admin UI (`BarangayManager.jsx`) now sets them on create/edit; no bulk seed script
+- [x] **Install Leaflet:** `npm i leaflet react-leaflet` — note: CSS loaded via unpkg CDN in `index.html` to dodge a NowSDK bundler path-mangling bug (see vault `decisions.md` 2026-04-17)
+- [x] **Build `<RouteMap />`** under `src/client/components/shared/RouteMap.jsx` *(not `resident/`)*:
+  - [x] `<MapContainer>` centered on Cebu City via exported `CEBU_CENTER` constant, zoom 12
+  - [x] OpenStreetMap tile layer
+  - [x] `<Marker>` per route stop, numbered by `u_stop_order` (Start = "S", End = "E")
+  - [x] `<Polyline>` (dashed) connecting stops in order
+  - [x] `<Popup>` on click showing label, ETA (12-hour format via `formatTime12h`), status
+  - [ ] Color-code by `u_stop_status` (Not Arrived / Current / Passed) — **deferred**, currently colored by `u_point_type` (Start / Stop / End)
+- [x] **Responsive sizing:** full-width on mobile, fixed height on desktop (admin uses 560 px, resident uses default)
+- [x] **Fallback:** `ScheduleChecker` falls back to `CEBU_CENTER` when the barangay has no coords
 
-**Acceptance:** Pick "Cebu Green Haulers" → see 4 numbered pins across North District barangays connected by a dashed line → click any pin → popup shows ETA and status.
+**Acceptance:** Pick a barangay on `/schedule` → see numbered pins + dashed polyline → click any pin → popup shows label, ETA, status. ✅ Verified by user 2026-04-17.
 
 ---
 
 ### Milestone 3.2 — Real-Time Status Updates (Day 3–4)
+
+**Status:** 🔴 **Not started.** `ReportTracker.jsx` still runs the Phase-2 10-second polling loop against `getReportByCode`. No SSE / WebSocket code exists, no Business Rule trigger, no stream endpoint.
 
 **Outcome:** Resident tracker reflects status changes **instantly** (sub-second), not after a 10-second poll.
 
@@ -83,6 +107,8 @@ Two viable transports — pick one based on ServiceNow capability testing:
 ---
 
 ### Milestone 3.3 — OAuth 2.0 Admin Login (Day 5–6)
+
+**Status:** 🔴 **Not started.** Basic Auth pilot is still the only login path: `AuthContext.jsx` stores `Basic ${btoa(...)}` in memory + `sessionStorage`, `verifyAuth()` in `api.js` performs the test call on login. No OAuth registry on the ServiceNow side, no callback route, no token refresh logic.
 
 **Outcome:** Admin login uses ServiceNow OAuth — no more Basic Auth, no passwords in memory.
 
@@ -115,6 +141,8 @@ Two viable transports — pick one based on ServiceNow capability testing:
 
 ### Milestone 3.4 — Bilingual Support (Cebuano + English) (Day 6–7)
 
+**Status:** 🔴 **Not started.** No `react-i18next` / `i18next` dependency, no `src/i18n/` folder, every string is still hardcoded English in JSX. Language toggle is absent from the navbar / sidebar.
+
 **Outcome:** Every user-facing string renders in Cebuano or English based on user preference. Residents default to Cebuano; admin defaults to English.
 
 - [ ] **Install:** `npm i react-i18next i18next`
@@ -139,6 +167,8 @@ Two viable transports — pick one based on ServiceNow capability testing:
 ---
 
 ### Milestone 3.5 — Offline-First PWA (Day 8–9)
+
+**Status:** 🔴 **Not started.** No `vite-plugin-pwa` (or NowSDK equivalent), no `manifest.json`, no service worker registered, no IndexedDB queueing for offline reports, no offline banner.
 
 **Outcome:** A resident with a spotty connection can still open the app, see their last-checked schedule, and queue a missed-pickup report for later sync.
 
@@ -170,6 +200,8 @@ Two viable transports — pick one based on ServiceNow capability testing:
 
 ### Milestone 3.6 — Performance Pass (Day 10)
 
+**Status:** 🔴 **Not started.** No `React.lazy` / `<Suspense>` on admin routes, no bundle audit run, no Lighthouse CI gate, no `preconnect` hint to the ServiceNow instance.
+
 **Outcome:** Lighthouse Mobile ≥ 90 on Performance + Accessibility + Best Practices for every resident page.
 
 - [ ] **Code splitting:** `React.lazy` + `<Suspense>` on all admin pages (residents never load admin bundle)
@@ -187,6 +219,8 @@ Two viable transports — pick one based on ServiceNow capability testing:
 
 ### Milestone 3.7 — Analytics Enhancements (Day 11)
 
+**Status:** 🟡 **Partial.** The base Recharts dashboard shipped in Phase 2 (bar / pie / line covering report volume, waste types, status distribution). None of the Phase-3 enhancements below are implemented yet.
+
 **Outcome:** The admin analytics page is genuinely useful for LGU decision-making, not just pretty charts.
 
 - [ ] **Period comparison:** "This month vs. last month" deltas on top-level metrics (total reports, resolution rate, avg time-to-resolve)
@@ -201,6 +235,8 @@ Two viable transports — pick one based on ServiceNow capability testing:
 ---
 
 ### Milestone 3.8 — Production Deployment & Monitoring (Day 12)
+
+**Status:** 🔴 **Not started.** Still dev-instance only (`dev375738.service-now.com`). No hosting decision recorded, no CI/CD pipeline, no Sentry, no analytics vendor, no uptime check.
 
 **Outcome:** The app ships to a real URL with error tracking, usage analytics, and a repeatable deploy pipeline.
 
@@ -222,18 +258,18 @@ Two viable transports — pick one based on ServiceNow capability testing:
 
 ## Part C — Definition of Done
 
-Phase 3 is done when all of these hold:
+Phase 3 is done when all of these hold (status as of 2026-04-17):
 
-1. Route map renders all 4 hauler routes with correct stop order and live stop status
-2. Admin changes a report status → resident tracker visibly updates in ≤ 2 seconds, no refresh
-3. Admin login flow uses OAuth (no `btoa(`) in the production bundle)
-4. Every user-facing string has a Cebuano translation; language toggle persists
-5. Service worker registered; `chrome://inspect → Application → Service Workers` shows it active
-6. Offline reload of the app still boots; queued reports send on reconnect
-7. Lighthouse Mobile ≥ 90 on all 7 resident pages
-8. Analytics drilldown + CSV export works end-to-end
-9. Production URL serves the app over HTTPS
-10. A new error on prod fires a Sentry alert within 30 seconds
+1. 🟡 Route map renders hauler routes with correct stop order — **stop order ✅, "live stop status" coloring ❌ (currently colored by `point_type`)**
+2. 🔴 Admin changes a report status → resident tracker visibly updates in ≤ 2 seconds, no refresh — **still 10s polling**
+3. 🔴 Admin login flow uses OAuth (no `btoa(`) in the production bundle) — **Basic Auth pilot only**
+4. 🔴 Every user-facing string has a Cebuano translation; language toggle persists
+5. 🔴 Service worker registered; `chrome://inspect → Application → Service Workers` shows it active
+6. 🔴 Offline reload of the app still boots; queued reports send on reconnect
+7. 🔴 Lighthouse Mobile ≥ 90 on all 7 resident pages
+8. 🔴 Analytics drilldown + CSV export works end-to-end
+9. 🔴 Production URL serves the app over HTTPS — **still dev-instance only**
+10. 🔴 A new error on prod fires a Sentry alert within 30 seconds
 
 ---
 

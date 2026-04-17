@@ -8,6 +8,8 @@ import Input from './shared/Input';
 import TextArea from './shared/TextArea';
 import Button from './shared/Button';
 import Card from './shared/Card';
+import DatePicker from './shared/DatePicker';
+import FileUpload from './shared/FileUpload';
 
 function FieldGroup({ title, children }) {
     return (
@@ -38,7 +40,6 @@ export default function MissedPickupForm() {
     const [email, setEmail] = useState('');
     const [description, setDescription] = useState('');
     const [photo, setPhoto] = useState(null);
-    const [photoError, setPhotoError] = useState('');
     const [submitError, setSubmitError] = useState('');
     const [photoWarning, setPhotoWarning] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -53,25 +54,6 @@ export default function MissedPickupForm() {
         }
         load();
     }, []);
-
-    function handlePhotoChange(e) {
-        setPhotoError('');
-        const file = e.target.files[0];
-        if (!file) { setPhoto(null); return; }
-        if (!file.type.startsWith('image/')) {
-            setPhotoError('Please select an image file.');
-            e.target.value = '';
-            setPhoto(null);
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            setPhotoError('Photo must be 5 MB or smaller.');
-            e.target.value = '';
-            setPhoto(null);
-            return;
-        }
-        setPhoto(file);
-    }
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -203,7 +185,7 @@ export default function MissedPickupForm() {
                 )}
                 <FieldGroup title="Location & Waste">
                     <Select
-                        label="Barangay *"
+                        label="Barangay"
                         name="barangay"
                         value={barangay}
                         onChange={(e) => setBarangay(e.target.value)}
@@ -211,19 +193,18 @@ export default function MissedPickupForm() {
                         required
                     />
                     <Select
-                        label="Waste Type Not Collected *"
+                        label="Waste Type Not Collected"
                         name="wasteType"
                         value={wasteType}
                         onChange={(e) => setWasteType(e.target.value)}
                         options={WASTE_TYPES.map((w) => ({ value: w, label: w }))}
                         required
                     />
-                    <Input
-                        label="Missed Date *"
+                    <DatePicker
+                        label="Missed Date"
                         name="missedDate"
-                        type="date"
                         value={missedDate}
-                        onChange={(e) => setMissedDate(e.target.value)}
+                        onChange={setMissedDate}
                         max={new Date().toISOString().slice(0, 10)}
                         required
                     />
@@ -244,43 +225,34 @@ export default function MissedPickupForm() {
                         placeholder="Describe the location or any specific issue..."
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
+                        maxLength={500}
                     />
-                    <div>
-                        <label style={{
-                            display: 'block', fontSize: 14, fontWeight: 500,
-                            color: COLORS.text.primary, marginBottom: 6,
-                        }}>
-                            Photo (optional, max 5 MB)
-                        </label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoChange}
-                            style={{ fontSize: 13, color: COLORS.text.secondary }}
-                        />
-                        {photoError && (
-                            <p role="alert" aria-live="assertive" style={{ margin: '4px 0 0', fontSize: 12, color: COLORS.error }}>
-                                {photoError}
-                            </p>
-                        )}
-                        {uploadPct !== null && (
-                            <div aria-live="polite" style={{ marginTop: 8 }}>
+                    <FileUpload
+                        label="Photo (optional)"
+                        name="photo"
+                        accept="image/*"
+                        maxSizeMB={5}
+                        helperText="PNG or JPG, up to 5 MB"
+                        value={photo}
+                        onChange={setPhoto}
+                    />
+                    {uploadPct !== null && (
+                        <div aria-live="polite" style={{ marginTop: 8 }}>
+                            <div style={{
+                                height: 6, background: COLORS.bg.muted, borderRadius: 999, overflow: 'hidden',
+                            }}>
                                 <div style={{
-                                    height: 6, background: COLORS.bg.muted, borderRadius: 999, overflow: 'hidden',
-                                }}>
-                                    <div style={{
-                                        height: '100%',
-                                        width: `${uploadPct}%`,
-                                        background: COLORS.primary,
-                                        transition: 'width 0.15s linear',
-                                    }} />
-                                </div>
-                                <div style={{ fontSize: 11, color: COLORS.text.muted, marginTop: 4 }}>
-                                    Uploading photo… {uploadPct}%
-                                </div>
+                                    height: '100%',
+                                    width: `${uploadPct}%`,
+                                    background: COLORS.primary,
+                                    transition: 'width 0.15s linear',
+                                }} />
                             </div>
-                        )}
-                    </div>
+                            <div style={{ fontSize: 11, color: COLORS.text.muted, marginTop: 4 }}>
+                                Uploading photo… {uploadPct}%
+                            </div>
+                        </div>
+                    )}
                 </FieldGroup>
 
                 <div style={{

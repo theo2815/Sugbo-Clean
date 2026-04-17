@@ -7,6 +7,7 @@ import Select from '../shared/Select';
 import TextArea from '../shared/TextArea';
 import Loading from '../shared/Loading';
 import ConfirmDialog from '../shared/ConfirmDialog';
+import Toast from '../shared/Toast';
 
 const EMPTY_FORM = { name: '', contact_number: '', areas_covered: '', barangay: '' };
 
@@ -20,6 +21,7 @@ export default function HaulerManager() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -55,8 +57,13 @@ export default function HaulerManager() {
     setSubmitting(true);
     setError('');
     try {
-      if (editing) await updateHauler(editing, form);
-      else await createHauler(form);
+      if (editing) {
+        await updateHauler(editing, form);
+        setToast({ message: 'Hauler updated successfully.', type: 'success' });
+      } else {
+        await createHauler(form);
+        setToast({ message: 'Hauler created successfully.', type: 'success' });
+      }
       setShowForm(false);
       await load();
     } catch (err) {
@@ -72,9 +79,10 @@ export default function HaulerManager() {
     try {
       await deleteHauler(sysId);
       setConfirm(null);
+      setToast({ message: 'Hauler deleted.', type: 'success' });
       await load();
     } catch (err) {
-      setError(err?.message || 'Delete failed.');
+      setToast({ message: err?.message || 'Delete failed.', type: 'error' });
       setConfirm(null);
     } finally {
       setSubmitting(false);
@@ -155,6 +163,8 @@ export default function HaulerManager() {
         onConfirm={confirmDelete}
         onCancel={() => setConfirm(null)}
       />
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

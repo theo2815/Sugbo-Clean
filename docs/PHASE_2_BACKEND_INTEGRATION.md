@@ -20,7 +20,7 @@ If those two rules held, **Phase 2 should not touch any page component**.
 
 ## Part A — What Phase 2 Must Deliver
 
-1. ✅ All 22 endpoints in fluent folder §5 wired and callable from the frontend
+1. ✅ All 25 endpoints in fluent folder §5 wired and callable from the frontend (22 from Phase 2 baseline + 3 new Barangay CRUD endpoints added 2026-04-17 — see Milestone 2.12)
 2. ✅ Real Basic Auth for admin users (session-scoped, never committed)
 3. ✅ The server-generated `SC-YYYY-NNNN` report code replaces the fake Phase-1 code generator
 4. ✅ Admin status updates persist in ServiceNow (resident tracker reflects the change after refetch)
@@ -226,6 +226,32 @@ ServiceNow attachments go to a separate endpoint: `/api/now/attachment/file`. Tw
 - [x] 60-second in-memory cache via `getBarangayBundle(sysId)` — fetches the schedule + hauler + route-stops triple in one call and memoises per barangay. Toggling between the same two barangays within a minute is now network-free.
 
 **Acceptance:** On `/schedule`, pick Lahug → schedule table, hauler card, and route stop list all populate in one interaction.
+
+---
+
+### Milestone 2.12 — Barangay CRUD Endpoints ✅ SHIPPED (2026-04-17)
+
+**Outcome:** Admins can create, edit, and delete barangays — including their map coordinates — without ServiceNow Studio access. Unblocks the interactive map work in Milestone 3.1.
+
+**Backend additions (ServiceNow side):**
+- Added `u_latitude` (Floating Point) and `u_longitude` (Floating Point) columns to `x_1986056_sugbocle_barangay`. Both nullable; existing rows return `null` until set in admin.
+- Added three Scripted REST endpoints:
+
+| Method | Path                       | Body                                              |
+| ------ | -------------------------- | ------------------------------------------------- |
+| POST   | `/barangays`               | `{ name, zone, latitude?, longitude? }`           |
+| PUT    | `/barangays/{sys_id}`      | `{ name?, zone?, latitude?, longitude? }`         |
+| DELETE | `/barangays/{sys_id}`      | —                                                 |
+
+- `GET /barangays` response shape now includes lat/lng: `{ sys_id, name, zone, latitude, longitude }`.
+
+**Frontend additions:**
+- New `crud(resource)` factory in `src/services/api.js` that returns `{ list, get, create, update, remove }`. Uses `PUT` for updates (matches the new endpoint convention; existing per-resource update functions stay on `PATCH` for backwards compatibility).
+- `barangayAPI = crud('barangays')` exported from the same file.
+- New admin page `BarangayManager` at `/admin/barangays` — table + form with embedded `<RouteMap>` for click-to-place + drag-to-adjust coordinate setting.
+- Sidebar gains a "Barangays" entry (icon: Building2) between Haulers and Waste Items.
+
+**Acceptance:** Open `/admin/barangays` → click "+ New Barangay" → fill name + zone → click on the embedded map at the barangay's location → marker appears, lat/lng auto-fill → Save → row appears in the table with a green 📍 indicator. Reload the page → coordinates persist (verifies POST hit ServiceNow). Edit the row → drag the marker → Save → coords reflect the drag.
 
 ---
 

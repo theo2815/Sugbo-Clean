@@ -197,7 +197,9 @@ export default function Dropdown({
     borderRadius: 12,
     boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06)',
     padding: 6,
-    zIndex: 50,
+    // Above Leaflet's popup pane (z-index 700) so dropdowns opening over a map
+    // aren't clipped. Any app-wide overlay that outranks this should stay > 1000.
+    zIndex: 1000,
     listStyle: 'none',
     margin: 0,
   };

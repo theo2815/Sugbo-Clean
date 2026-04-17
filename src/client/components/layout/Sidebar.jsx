@@ -1,16 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, CalendarDays, Truck,
-  MapPin, Recycle, BarChart3,
+  LayoutDashboard, Truck,
+  MapPin, Building2, Recycle, BarChart3,
 } from 'lucide-react';
 import { COLORS } from '../../../utils/constants';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
-  { icon: CalendarDays, label: 'Schedules', path: '/admin/schedules' },
+  { icon: MapPin, label: 'Routes', path: '/admin/schedules' },
   { icon: Truck, label: 'Haulers', path: '/admin/haulers' },
-  { icon: MapPin, label: 'Route Stops', path: '/admin/route-stops' },
+  { icon: Building2, label: 'Barangays', path: '/admin/barangays' },
   { icon: Recycle, label: 'Waste Items', path: '/admin/waste-items' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
 ];

@@ -2,17 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Phone, Truck, CalendarDays, Clock, Navigation } from 'lucide-react';
 import { getBarangays, getBarangayBundle } from '../../services/api';
 import { COLORS } from '../../utils/constants';
+import { formatTime12h } from '../../utils/helpers';
 import Select from './shared/Select';
 import Loading from './shared/Loading';
 import Card from './shared/Card';
 import EmptyState from './shared/EmptyState';
 import { SkeletonRows } from './shared/Skeleton';
-
-const stopStatusColors = {
-    'Passed': COLORS.success,
-    'Current': COLORS.status.inProgress,
-    'Not Arrived': COLORS.text.muted,
-};
+import RouteMap, { CEBU_CENTER } from './shared/RouteMap';
 
 const wasteTypeColor = {
     Biodegradable: COLORS.bin.Biodegradable,
@@ -44,7 +40,8 @@ export default function ScheduleChecker() {
 
     const [hauler, setHauler] = useState(null);
     const [routeStops, setRouteStops] = useState([]);
-    const [routeLoading, setRouteLoading] = useState(false);
+    const [bundleError, setBundleError] = useState(null);
+    const [retryKey, setRetryKey] = useState(0);
 
     useEffect(() => {
         async function loadBarangays() {
@@ -68,25 +65,32 @@ export default function ScheduleChecker() {
         let cancelled = false;
         async function loadAll() {
             setScheduleLoading(true);
-            setRouteLoading(true);
-            // Merged bundle fetch — uses a 60s cache so toggling between the
-            // same barangay doesn't re-hit the network.
-            const bundle = await getBarangayBundle(selectedBarangay);
-            if (cancelled) return;
-            setSchedules(bundle.schedules);
-            setHauler(bundle.hauler);
-            setRouteStops(bundle.routeStops);
-            setScheduleLoading(false);
-            setRouteLoading(false);
+            setBundleError(null);
+            try {
+                const bundle = await getBarangayBundle(selectedBarangay);
+                if (cancelled) return;
+                setSchedules(bundle.schedules);
+                setHauler(bundle.hauler);
+                setRouteStops(bundle.routeStops);
+            } catch (err) {
+                if (cancelled) return;
+                setBundleError(err?.message || 'Failed to load schedule data. Please try again.');
+            } finally {
+                if (!cancelled) setScheduleLoading(false);
+            }
         }
         loadAll();
         return () => { cancelled = true; };
-    }, [selectedBarangay]);
+    }, [selectedBarangay, retryKey]);
 
     if (loading) return <Loading message="Loading barangays..." />;
 
-    // Route stops are already filtered by barangay — first entry is the relevant stop.
-    const myStop = routeStops[0] || null;
+    const residentBarangay = barangays.find((b) => b.sys_id === selectedBarangay);
+    const residentLatLng = residentBarangay
+        && Number.isFinite(Number(residentBarangay.latitude))
+        && Number.isFinite(Number(residentBarangay.longitude))
+        ? [Number(residentBarangay.latitude), Number(residentBarangay.longitude)]
+        : null;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -101,6 +105,26 @@ export default function ScheduleChecker() {
                     options={barangays.map((b) => ({ value: b.sys_id, label: b.name }))}
                     placeholder="-- Select your Barangay --"
                 />
+
+                {bundleError && (
+                    <div role="alert" style={{
+                        padding: '10px 14px', border: `1px solid ${COLORS.error}`, background: '#FEF2F2',
+                        borderRadius: 10, color: COLORS.error, fontSize: 13, marginTop: 12,
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+                    }}>
+                        <span>{bundleError}</span>
+                        <button
+                            onClick={() => setRetryKey((k) => k + 1)}
+                            style={{
+                                padding: '4px 10px', borderRadius: 6, border: `1px solid ${COLORS.error}`,
+                                background: '#fff', color: COLORS.error, fontWeight: 600, fontSize: 12, cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            Retry
+                        </button>
+                    </div>
+                )}
 
                 {!selectedBarangay && (
                     <p style={{
@@ -147,7 +171,7 @@ export default function ScheduleChecker() {
                                         color: COLORS.text.secondary, fontSize: 13,
                                     }}>
                                         <Clock size={13} />
-                                        {item.time_window_start} – {item.time_window_end}
+                                        {formatTime12h(item.time_window_start)} – {formatTime12h(item.time_window_end)}
                                     </span>
                                     <span style={{
                                         color: wasteTypeColor[item.waste_type] || COLORS.text.secondary,
@@ -212,73 +236,28 @@ export default function ScheduleChecker() {
                 </Card>
             )}
 
-            {/* ── Route / Arrival ── */}
+            {/* ── Route Map ── */}
             {selectedBarangay && !scheduleLoading && hauler && (
                 <Card>
-                    <SectionTitle icon={Navigation} accent={COLORS.primary}>Route & Arrival</SectionTitle>
+                    <SectionTitle icon={Navigation} accent={COLORS.primary}>Route</SectionTitle>
 
-                    <div style={{
-                        background: `linear-gradient(135deg, ${COLORS.secondaryLight} 0%, ${COLORS.primaryLight} 100%)`,
-                        borderRadius: 12,
-                        padding: '28px 20px',
+                    <RouteMap
+                        stops={routeStops}
+                        center={residentLatLng ?? CEBU_CENTER}
+                        zoom={residentLatLng ? 15 : 13}
+                        height={340}
+                    />
+
+                    <p style={{
+                        margin: '12px 0 0',
+                        fontSize: 12,
+                        color: COLORS.text.muted,
                         textAlign: 'center',
-                        border: `1px dashed ${COLORS.secondary}40`,
                     }}>
-                        <div style={{ fontSize: '2.25rem', marginBottom: 6 }}>🗺️</div>
-                        <p style={{ margin: 0, fontWeight: 600, color: COLORS.secondary }}>
-                            {hauler.name}'s route
-                        </p>
-                        <p style={{ margin: '4px 0 0', fontSize: 12, color: COLORS.text.muted }}>
-                            Interactive map coming in Phase 3
-                        </p>
-                    </div>
-
-                    {routeLoading && <Loading message="Loading route status..." />}
-
-                    {!routeLoading && myStop && (
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 16,
-                            padding: '14px 4px 2px',
-                            marginTop: 16,
-                            flexWrap: 'wrap',
-                        }}>
-                            <div>
-                                <div style={{ fontSize: 13, color: COLORS.text.muted }}>Estimated arrival</div>
-                                <div style={{
-                                    fontSize: '1.35rem',
-                                    color: COLORS.primary,
-                                    fontWeight: 700,
-                                    marginTop: 2,
-                                }}>
-                                    {myStop.estimated_arrival}
-                                </div>
-                            </div>
-                            <span style={{
-                                padding: '6px 12px',
-                                borderRadius: 999,
-                                fontSize: 13,
-                                fontWeight: 600,
-                                background: `${stopStatusColors[myStop.stop_status] || COLORS.text.muted}20`,
-                                color: stopStatusColors[myStop.stop_status] || COLORS.text.muted,
-                            }}>
-                                {myStop.stop_status}
-                            </span>
-                        </div>
-                    )}
-
-                    {!routeLoading && !myStop && (
-                        <p style={{
-                            margin: '16px 0 0',
-                            textAlign: 'center',
-                            color: COLORS.text.muted,
-                            fontSize: 13,
-                        }}>
-                            No route data available for this stop yet.
-                        </p>
-                    )}
+                        {routeStops.length === 0
+                            ? 'No route has been set yet for your barangay.'
+                            : 'Click any pin to see the street label and estimated arrival time.'}
+                    </p>
                 </Card>
             )}
         </div>

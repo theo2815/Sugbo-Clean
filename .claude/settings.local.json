@@ -12,7 +12,12 @@
       "Bash(kill %1)",
       "Bash(grep -iE \"^\\(chevron-down|check\\)\\\\.js$\")",
       "Bash(node --check src/client/components/shared/Dropdown.jsx)",
-      "Bash(node --check src/client/hooks/useClickOutside.js)"
+      "Bash(node --check src/client/hooks/useClickOutside.js)",
+      "Bash(sed 's/^export function //')",
+      "Bash(sed 's/\\(.*$//')",
+      "Bash(npx react-scripts *)",
+      "Bash(node -e \"const lr = require\\('lucide-react'\\); console.log\\('Building2' in lr ? 'OK Building2 exists' : 'MISSING Building2'\\); console.log\\('version:', require\\('lucide-react/package.json'\\).version\\);\")",
+      "Bash(awk '/method: .PATCH/' src/services/api.js)"
     ]
   }
 }

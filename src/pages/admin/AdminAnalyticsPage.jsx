@@ -4,6 +4,7 @@ import { getAllReports } from '../../services/api';
 import { COLORS } from '../../utils/constants';
 import Card from '../../client/components/shared/Card';
 import Loading from '../../client/components/shared/Loading';
+import DatePicker from '../../client/components/shared/DatePicker';
 
 const WASTE_COLORS = {
   Biodegradable: COLORS.bin.Biodegradable,
@@ -15,15 +16,24 @@ const WASTE_COLORS = {
 export default function AdminAnalyticsPage() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  useEffect(() => {
-    async function load() {
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
       const { result } = await getAllReports();
       setReports(result);
+    } catch (err) {
+      setError(err?.message || 'Failed to load reports. Please try again.');
+    } finally {
       setLoading(false);
     }
+  }
+
+  useEffect(() => {
     load();
   }, []);
 
@@ -60,13 +70,46 @@ export default function AdminAnalyticsPage() {
 
   if (loading) return <Loading message="Loading analytics..." />;
 
+  if (error) {
+    return (
+      <div role="alert" style={{
+        padding: 16, border: `1px solid ${COLORS.error}`, background: '#FEF2F2',
+        borderRadius: 10, color: COLORS.error, display: 'flex',
+        justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      }}>
+        <span style={{ fontSize: 14 }}>{error}</span>
+        <button
+          onClick={load}
+          style={{
+            padding: '6px 14px', borderRadius: 8, border: `1px solid ${COLORS.error}`,
+            background: '#fff', color: COLORS.error, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
         <label style={{ fontSize: 14, color: COLORS.text.secondary }}>Date Range:</label>
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={dateInputStyle} />
+        <DatePicker
+          value={dateFrom}
+          onChange={setDateFrom}
+          max={dateTo || undefined}
+          size="sm"
+          fullWidth={false}
+        />
         <span style={{ color: COLORS.text.muted }}>to</span>
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={dateInputStyle} />
+        <DatePicker
+          value={dateTo}
+          onChange={setDateTo}
+          min={dateFrom || undefined}
+          size="sm"
+          fullWidth={false}
+        />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
@@ -129,9 +172,3 @@ export default function AdminAnalyticsPage() {
   );
 }
 
-const dateInputStyle = {
-  padding: '8px 12px',
-  border: `1px solid ${COLORS.border}`,
-  borderRadius: 8,
-  fontSize: 14,
-};

@@ -7,6 +7,14 @@ import Select from '../shared/Select';
 import TextArea from '../shared/TextArea';
 import Loading from '../shared/Loading';
 import ConfirmDialog from '../shared/ConfirmDialog';
+import Toast from '../shared/Toast';
+
+// Normalize "biodegradable" → "Biodegradable" to match BIN_TYPES constants.
+function normalizeBinType(raw) {
+  if (!raw) return '';
+  const lower = raw.toLowerCase();
+  return BIN_TYPES.find((t) => t.toLowerCase() === lower) || raw;
+}
 
 const EMPTY_FORM = { name: '', bin_type: '', bin_color: '', disposal_instructions: '' };
 
@@ -19,6 +27,7 @@ export default function WasteItemManager() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -37,7 +46,13 @@ export default function WasteItemManager() {
   }
 
   function openEdit(item) {
-    setForm({ name: item.name, bin_type: item.bin_type, bin_color: item.bin_color, disposal_instructions: item.disposal_instructions });
+    const binType = normalizeBinType(item.bin_type);
+    setForm({
+      name: item.name,
+      bin_type: binType,
+      bin_color: BIN_COLOR_MAP[binType] || item.bin_color,
+      disposal_instructions: item.disposal_instructions,
+    });
     setEditing(item.sys_id);
     setError('');
     setShowForm(true);
@@ -53,8 +68,13 @@ export default function WasteItemManager() {
     setSubmitting(true);
     setError('');
     try {
-      if (editing) await updateWasteItem(editing, form);
-      else await createWasteItem(form);
+      if (editing) {
+        await updateWasteItem(editing, form);
+        setToast({ message: 'Waste item updated successfully.', type: 'success' });
+      } else {
+        await createWasteItem(form);
+        setToast({ message: 'Waste item created successfully.', type: 'success' });
+      }
       setShowForm(false);
       await load();
     } catch (err) {
@@ -70,9 +90,10 @@ export default function WasteItemManager() {
     try {
       await deleteWasteItem(sysId);
       setConfirm(null);
+      setToast({ message: 'Waste item deleted.', type: 'success' });
       await load();
     } catch (err) {
-      setError(err?.message || 'Delete failed.');
+      setToast({ message: err?.message || 'Delete failed.', type: 'error' });
       setConfirm(null);
     } finally {
       setSubmitting(false);
@@ -167,6 +188,8 @@ export default function WasteItemManager() {
         onConfirm={confirmDelete}
         onCancel={() => setConfirm(null)}
       />
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

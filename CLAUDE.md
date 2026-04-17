@@ -194,10 +194,31 @@ The backend is live and its schema is frozen. Do not modify. Use this as a quick
 - **Scope:** `x_1986056_sugbocle`
 - **Auth (dev):** Basic Auth via env vars
 - **Tables (7):** `barangay`, `hauler`, `schedule`, `report`, `route_stop`, `waste_item`, `reminder_subscription` (all prefixed `x_1986056_sugbocle_`)
-- **Endpoints (22):** 8 resident, 14 admin. See phase doc for full list.
+- **Endpoints (25):** 8 resident, 17 admin. See phase doc for full list.
 - **Report code format:** `SC-YYYY-NNNN` — **auto-generated server-side**. Never generate in the frontend.
 - **Reference fields** store `sys_id` on write; GET responses include both raw `sys_id` and a display value.
 - **Status flow:** Pending → In Progress → Resolved (forward only).
+
+### Barangay schema additions
+
+The `x_1986056_sugbocle_barangay` table now exposes geo fields used by the admin Route editor and Barangay manager:
+
+| Field          | Type           | Notes                                        |
+| -------------- | -------------- | -------------------------------------------- |
+| `u_latitude`   | Floating Point | Decimal degrees; nullable until set in admin |
+| `u_longitude`  | Floating Point | Decimal degrees; nullable until set in admin |
+
+`GET /barangays` returns: `{ sys_id, name, zone, latitude, longitude }`.
+
+### Barangay admin endpoints (new)
+
+| Method | Path                       | Body                                              |
+| ------ | -------------------------- | ------------------------------------------------- |
+| POST   | `/barangays`               | `{ name, zone, latitude?, longitude? }`           |
+| PUT    | `/barangays/{sys_id}`      | `{ name?, zone?, latitude?, longitude? }`         |
+| DELETE | `/barangays/{sys_id}`      | —                                                 |
+
+Wired in `src/services/api.js` via `barangayAPI = crud('barangays')`. Note the new `crud()` factory uses `PUT` for updates (the new convention); existing schedule/route-stop/hauler/waste-item updates remain on `PATCH` for backwards compatibility.
 
 ### Service-layer pattern (required)
 
@@ -265,3 +286,44 @@ Setup and environment details: `docs/RUNNING_THE_APP.md`.
 ---
 
 *End of SugboClean Development Rulebook. Phase-specific requirements: see `docs/`.*
+
+---
+
+## 🧠 Second Brain (Read This First)
+
+At the start of EVERY new session, before doing anything else:
+
+1. Read the global vault instructions:
+   C:\Users\Theo Cedric Chan\Documents\Obsidian Vault\Developer Vault\CLAUDE.md
+
+2. Read the master project dashboard:
+   C:\Users\Theo Cedric Chan\Documents\Obsidian Vault\Developer Vault\VAULT-INDEX.md
+
+3. Read SugboClean-specific notes:
+   C:\Users\Theo Cedric Chan\Documents\Obsidian Vault\Developer Vault\projects\sugboclean\index.md
+   C:\Users\Theo Cedric Chan\Documents\Obsidian Vault\Developer Vault\projects\sugboclean\tasks.md
+
+4. Confirm you read them by summarizing:
+   - What SugboClean is (1 line)
+   - Current phase / status
+   - Top 2–3 pending tasks
+
+Only after steps 1–4 ask me what to work on today.
+
+## 📝 Vault Sync Rules (from global CLAUDE.md)
+
+Keep the vault updated proactively — not just when asked:
+
+- tasks.md → update as work progresses (move items Now → Done,
+  log new blockers)
+- decisions.md → append a dated entry for any architecture or
+  tech decision made this session, using this format:
+
+  ## YYYY-MM-DD — Short title
+  **Decision:** what was chosen
+  **Why:** reasoning / constraint
+  **Alternatives considered:** what was rejected and why
+
+- index.md → update if stack, phase, or project scope changes
+- VAULT-INDEX.md → update the SugboClean status row if a
+  milestone is hit

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { setUnauthorizedHandler } from '../services/api';
@@ -20,11 +20,13 @@ import AdminLayout from '../pages/admin/AdminLayout';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminAnalyticsPage from '../pages/admin/AdminAnalyticsPage';
 
-import ScheduleManager from './components/admin/ScheduleManager';
 import HaulerManager from './components/admin/HaulerManager';
-import RouteStopManager from './components/admin/RouteStopManager';
+import BarangayManager from './components/admin/BarangayManager';
 import WasteItemManager from './components/admin/WasteItemManager';
+import RouteBuilder from './components/admin/RouteBuilder';
 
+// leaflet.css is loaded via <link> in index.html — JS-importing it 404s because
+// the NowSDK bundler strips path separators from the generated asset URL.
 import './app.css';
 
 function Shell() {
@@ -88,9 +90,10 @@ function Shell() {
                     {/* Admin routes (protected, nested under shared layout) */}
                     <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
                         <Route path="dashboard" element={<AdminDashboardPage />} />
-                        <Route path="schedules" element={<ScheduleManager />} />
+                        <Route path="schedules" element={<RouteBuilder />} />
+                        <Route path="route-stops" element={<Navigate to="/admin/schedules" replace />} />
                         <Route path="haulers" element={<HaulerManager />} />
-                        <Route path="route-stops" element={<RouteStopManager />} />
+                        <Route path="barangays" element={<BarangayManager />} />
                         <Route path="waste-items" element={<WasteItemManager />} />
                         <Route path="analytics" element={<AdminAnalyticsPage />} />
                     </Route>
@@ -108,9 +111,9 @@ function Shell() {
 export default function App() {
     return (
         <AuthProvider>
-            <BrowserRouter>
+            <HashRouter>
                 <Shell />
-            </BrowserRouter>
+            </HashRouter>
         </AuthProvider>
     );
 }

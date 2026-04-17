@@ -9,9 +9,13 @@ export default function TextArea({
   value,
   onChange,
   required = false,
+  maxLength,
   style,
   ...rest
 }) {
+  const len = typeof value === 'string' ? value.length : 0;
+  const nearLimit = maxLength && len >= maxLength * 0.9;
+
   return (
     <div style={{ marginBottom: 16, ...style }}>
       {label && (
@@ -33,6 +37,7 @@ export default function TextArea({
         value={value}
         onChange={onChange}
         required={required}
+        maxLength={maxLength}
         style={{
           width: '100%',
           padding: '10px 12px',
@@ -45,6 +50,17 @@ export default function TextArea({
         }}
         {...rest}
       />
+      {maxLength && (
+        <div style={{
+          textAlign: 'right',
+          fontSize: 12,
+          marginTop: 4,
+          color: nearLimit ? COLORS.error : COLORS.text.muted,
+          fontWeight: nearLimit ? 600 : 400,
+        }}>
+          {len} / {maxLength}
+        </div>
+      )}
     </div>
   );
 }
