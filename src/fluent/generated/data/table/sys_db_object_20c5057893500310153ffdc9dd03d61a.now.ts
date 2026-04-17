@@ -1,4 +1,4 @@
-import { Table } from '@servicenow/sdk/core'
+import { ReferenceColumn, Table } from '@servicenow/sdk/core'
 
 export const x_1986056_sugbocle_hauler = Table({
     actions: ['read', 'update', 'create'],
@@ -11,5 +11,21 @@ export const x_1986056_sugbocle_hauler = Table({
     },
     label: 'Hauler',
     name: 'x_1986056_sugbocle_hauler',
-    schema: {},
+    schema: {
+        u_barangay: ReferenceColumn({
+            label: [
+                {
+                    label: 'barangay',
+                },
+            ],
+            referenceTable: 'x_1986056_sugbocle_barangay',
+        }),
+    },
+    index: [
+        {
+            name: 'index',
+            unique: false,
+            element: 'u_barangay',
+        },
+    ],
 })

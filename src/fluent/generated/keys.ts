@@ -617,6 +617,14 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_dictionary'
+                        id: '0f1268a5c1de41a5936e9ad6d4dfd807'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_latitude'
+                        }
+                    },
+                    {
                         table: 'ua_table_licensing_config'
                         id: '100a8e2c39a74d2fb4b43f1706f337fa'
                         key: {
@@ -763,10 +771,46 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list_element'
+                        id: '2086c1f893500310153ffdc9dd03d640'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'sys_created_on'
+                        }
+                    },
+                    {
                         table: 'sys_user_role'
                         id: '2365093893500310153ffdc9dd03d6dc'
                         key: {
                             name: 'x_1986056_sugbocle.resident'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: '2886c1f893500310153ffdc9dd03d641'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'sys_mod_count'
                         }
                     },
                     {
@@ -776,6 +820,33 @@ declare global {
                             name: 'x_1986056_sugbocle_hauler'
                             element: 'NULL'
                             language: 'en'
+                        }
+                    },
+                    {
+                        table: 'sys_choice'
+                        id: '2ba2442461f148a9a5eed0aebc12eddb'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_point_type'
+                            value: 'end'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: '2c86c1f893500310153ffdc9dd03d640'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'sys_updated_on'
                         }
                     },
                     {
@@ -818,6 +889,15 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_choice'
+                        id: '391c0a2a04c14a15bc2b0f05ff1ff8c1'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_point_type'
+                            value: 'stop'
+                        }
+                    },
+                    {
                         table: 'ua_table_licensing_config'
                         id: '3d3f108220414c1297d2da927e32c697'
                         key: {
@@ -851,6 +931,23 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list'
+                        id: '3e9c0af093980310153ffdc9dd03d6c4'
+                        key: {
+                            name: 'x_1986056_sugbocle_hauler'
+                            view: {
+                                id: 'd0c3d060f50003100a22c0b3dfa1515a'
+                                key: {
+                                    name: 'sys_ref_list'
+                                }
+                            }
+                            sys_domain: 'global'
+                            element: 'NULL'
+                            relationship: 'NULL'
+                            parent: 'NULL'
+                        }
+                    },
+                    {
                         table: 'sys_security_acl_role'
                         id: '428609f893500310153ffdc9dd03d681'
                         key: {
@@ -861,6 +958,32 @@ declare global {
                                     name: 'x_1986056_sugbocle.resident'
                                 }
                             }
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: '43db2663fe0944889f1d19e4e50775fd'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_longitude'
+                            language: 'en'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: '47522cd2013846ea9eaa6ca24e791b0e'
+                        key: {
+                            name: 'x_1986056_sugbocle_hauler'
+                            element: 'u_barangay'
+                            language: 'en'
+                        }
+                    },
+                    {
+                        table: 'sys_index'
+                        id: '4847380c7fb84637b3ae25a1c5f35449'
+                        key: {
+                            logical_table_name: 'x_1986056_sugbocle_hauler'
+                            col_name_string: 'u_barangay'
                         }
                     },
                     {
@@ -971,6 +1094,24 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list_element'
+                        id: '607090fd9394c710153ffdc9dd03d6b4'
+                        key: {
+                            list_id: {
+                                id: 'c9735d7493d00310153ffdc9dd03d60e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_route_stop'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_point_type'
+                        }
+                    },
+                    {
                         table: 'sys_dictionary'
                         id: '60ec4a94d406423ea9522130b9734100'
                         key: {
@@ -1015,6 +1156,24 @@ declare global {
                                     name: 'x_1986056_sugbocle.resident'
                                 }
                             }
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: '647090fd9394c710153ffdc9dd03d6b3'
+                        key: {
+                            list_id: {
+                                id: 'c9735d7493d00310153ffdc9dd03d60e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_route_stop'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_latitude'
                         }
                     },
                     {
@@ -1138,6 +1297,15 @@ declare global {
                                 }
                             }
                             element: 'u_email'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: '77263736be4d40eea6b9cf200becfc4b'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_point_type'
+                            language: 'en'
                         }
                     },
                     {
@@ -1281,11 +1449,29 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_choice'
+                        id: '8d32ce5278c34f4ea5ae34631ed4e209'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_point_type'
+                            value: 'start'
+                        }
+                    },
+                    {
                         table: 'sys_documentation'
                         id: '8e3649b893500310153ffdc9dd03d61c'
                         key: {
                             name: 'x_1986056_sugbocle_route_stop'
                             element: 'NULL'
+                            language: 'en'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: '8e9ca0d1d7644fadbbeedd8e6b519a42'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_latitude'
                             language: 'en'
                         }
                     },
@@ -1330,6 +1516,14 @@ declare global {
                                 }
                             }
                             element: 'u_hauler'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: '96bc2fa20f534677ae75b28d412fd2a8'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_point_type'
                         }
                     },
                     {
@@ -1387,6 +1581,14 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_dictionary'
+                        id: '9ff200edf1ea41d0a583ddeaea896ab1'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_longitude'
+                        }
+                    },
+                    {
                         table: 'sys_security_acl_role'
                         id: 'a075893893500310153ffdc9dd03d674'
                         key: {
@@ -1400,6 +1602,24 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list_element'
+                        id: 'a086c1f893500310153ffdc9dd03d641'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'sys_updated_by'
+                        }
+                    },
+                    {
                         table: 'sys_security_acl_role'
                         id: 'a46641f893500310153ffdc9dd03d6c2'
                         key: {
@@ -1410,6 +1630,24 @@ declare global {
                                     name: 'x_1986056_sugbocle.admin'
                                 }
                             }
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: 'a486c1f893500310153ffdc9dd03d640'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'sys_created_by'
                         }
                     },
                     {
@@ -1436,6 +1674,41 @@ declare global {
                                 }
                             }
                             element: 'u_latitude'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list'
+                        id: 'ac10d9bc93900310153ffdc9dd03d6ee'
+                        key: {
+                            name: 'x_1986056_sugbocle_barangay'
+                            view: {
+                                id: 'd0c3d060f50003100a22c0b3dfa1515a'
+                                key: {
+                                    name: 'sys_ref_list'
+                                }
+                            }
+                            sys_domain: 'global'
+                            element: 'NULL'
+                            relationship: 'NULL'
+                            parent: 'NULL'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: 'ae405cbd9394c710153ffdc9dd03d69a'
+                        key: {
+                            list_id: {
+                                id: '9913117493d00310153ffdc9dd03d652'
+                                key: {
+                                    name: 'x_1986056_sugbocle_hauler'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_barangay'
                         }
                     },
                     {
@@ -1740,6 +2013,42 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list_element'
+                        id: 'e810d9bc93900310153ffdc9dd03d6f0'
+                        key: {
+                            list_id: {
+                                id: 'ac10d9bc93900310153ffdc9dd03d6ee'
+                                key: {
+                                    name: 'x_1986056_sugbocle_barangay'
+                                    view: 'd0c3d060f50003100a22c0b3dfa1515a'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_name'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: 'e87090fd9394c710153ffdc9dd03d6b3'
+                        key: {
+                            list_id: {
+                                id: 'c9735d7493d00310153ffdc9dd03d60e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_route_stop'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_longitude'
+                        }
+                    },
+                    {
                         table: 'sys_security_acl_role'
                         id: 'e9c5457893500310153ffdc9dd03d6ba'
                         key: {
@@ -1758,6 +2067,31 @@ declare global {
                         key: {
                             application_file: '71065aabd5124fb787977ef13f49ded9'
                             source_artifact: '730351d6bdf84da2a3e5ab40c0d92467'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list'
+                        id: 'ec86c1f893500310153ffdc9dd03d63e'
+                        key: {
+                            name: 'x_1986056_sugbocle_reminder_subscription'
+                            view: {
+                                id: 'Default view'
+                                key: {
+                                    name: 'NULL'
+                                }
+                            }
+                            sys_domain: 'global'
+                            element: 'NULL'
+                            relationship: 'NULL'
+                            parent: 'NULL'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: 'eca5f332178c42ca9b8ea5a624f6f768'
+                        key: {
+                            name: 'x_1986056_sugbocle_hauler'
+                            element: 'u_barangay'
                         }
                     },
                     {
@@ -1874,6 +2208,14 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_dictionary'
+                        id: 'f79b4447ff5144ebaa44279cf6d6e340'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_label'
+                        }
+                    },
+                    {
                         table: 'sn_glider_source_artifact_m2m'
                         id: 'f99ec904dc5d4c91a5882e2354627908'
                         key: {
@@ -1915,6 +2257,33 @@ declare global {
                                 }
                             }
                             element: 'u_barangay'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: 'fe9c0af093980310153ffdc9dd03d6c5'
+                        key: {
+                            list_id: {
+                                id: '3e9c0af093980310153ffdc9dd03d6c4'
+                                key: {
+                                    name: 'x_1986056_sugbocle_hauler'
+                                    view: 'd0c3d060f50003100a22c0b3dfa1515a'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_name'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: 'fecddf4e35294250af8da70f0526d163'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_label'
+                            language: 'en'
                         }
                     },
                 ]

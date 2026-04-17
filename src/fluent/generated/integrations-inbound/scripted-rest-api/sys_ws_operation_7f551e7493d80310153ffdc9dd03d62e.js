@@ -6,6 +6,7 @@
     gr.setValue('u_name', body.name);
     gr.setValue('u_contact_number', body.contact_number);
     gr.setValue('u_areas_covered', body.areas_covered);
+    gr.setValue('u_barangay', body.barangay);
     gr.insert();
 
     response.setStatus(201);

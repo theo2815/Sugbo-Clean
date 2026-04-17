@@ -8,6 +8,7 @@
         if (body.name) gr.setValue('u_name', body.name);
         if (body.contact_number) gr.setValue('u_contact_number', body.contact_number);
         if (body.areas_covered) gr.setValue('u_areas_covered', body.areas_covered);
+        if (body.barangay) gr.setValue('u_barangay', body.barangay);
         gr.update();
         response.setBody({ result: { sys_id: gr.getUniqueValue(), message: 'Updated' } });
     } else {
