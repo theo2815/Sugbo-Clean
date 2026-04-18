@@ -13,8 +13,14 @@
     while (gr.next()) {
         list.push({
             sys_id: gr.getUniqueValue(),
-            barangay: gr.getDisplayValue('u_barangay'),
-            hauler: gr.getDisplayValue('u_hauler'),
+			barangay: {
+				value: gr.getValue('u_barangay'),
+				display_value: gr.getDisplayValue('u_barangay')
+			},
+			hauler: {
+				value: gr.getValue('u_hauler'),
+				display_value: gr.getDisplayValue('u_hauler')
+			},
             waste_type: gr.getValue('u_waste_type'),
             day_of_week: gr.getValue('u_day_of_week'),
             time_window_start: gr.getValue('u_time_window_start'),
