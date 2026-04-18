@@ -1344,6 +1344,15 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_documentation'
+                        id: '75e96a81daaa4382b4984e14e9bdf8de'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_offset_minutes'
+                            language: 'en'
+                        }
+                    },
+                    {
                         table: 'sys_ui_list_element'
                         id: '76688eb893580310153ffdc9dd03d673'
                         key: {
@@ -2121,6 +2130,14 @@ declare global {
                                     name: 'x_1986056_sugbocle.admin'
                                 }
                             }
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: 'ea459ff8d6964999b647cc9d14e5ea15'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_offset_minutes'
                         }
                     },
                     {

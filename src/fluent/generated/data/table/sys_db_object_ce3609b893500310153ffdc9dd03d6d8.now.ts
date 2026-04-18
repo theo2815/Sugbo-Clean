@@ -73,6 +73,13 @@ export const x_1986056_sugbocle_route_stop = Table({
             ],
             referenceTable: 'x_1986056_sugbocle_schedule',
         }),
+        u_offset_minutes: IntegerColumn({
+            label: [
+                {
+                    label: 'Offset (Minutes)',
+                },
+            ],
+        }),
     },
     index: [
         {
