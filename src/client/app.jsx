@@ -16,6 +16,7 @@ import WasteGuidePage from '../pages/WasteGuidePage';
 
 
 import LoginPage from '../pages/admin/LoginPage';
+import OAuthCallback from '../pages/admin/OAuthCallback';
 import AdminLayout from '../pages/admin/AdminLayout';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminAnalyticsPage from '../pages/admin/AdminAnalyticsPage';
@@ -86,6 +87,7 @@ function Shell() {
 
                     {/* Admin login (public) */}
                     <Route path="/admin/login" element={<LoginPage />} />
+                    <Route path="/admin/oauth/callback" element={<OAuthCallback />} />
 
                     {/* Admin routes (protected, nested under shared layout) */}
                     <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>

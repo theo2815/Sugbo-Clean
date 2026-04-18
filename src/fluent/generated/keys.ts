@@ -25,6 +25,10 @@ declare global {
                         table: 'sys_ui_element'
                         id: '09ff49bc93900310153ffdc9dd03d646'
                     }
+                    '0abc30ce93984b10153ffdc9dd03d67c': {
+                        table: 'oauth_entity'
+                        id: '0abc30ce93984b10153ffdc9dd03d67c'
+                    }
                     '0d26c6b493580310153ffdc9dd03d604': {
                         table: 'sys_ui_element'
                         id: '0d26c6b493580310153ffdc9dd03d604'
@@ -325,6 +329,10 @@ declare global {
                         table: 'sys_security_acl'
                         id: '933649b893500310153ffdc9dd03d689'
                     }
+                    '95fc744293d84b10153ffdc9dd03d60f': {
+                        table: 'sys_kmf_crypto_caller_policy'
+                        id: '95fc744293d84b10153ffdc9dd03d60f'
+                    }
                     '975d027493980310153ffdc9dd03d6d3': {
                         table: 'sys_ui_element'
                         id: '975d027493980310153ffdc9dd03d6d3'
@@ -356,6 +364,10 @@ declare global {
                     b56780ad93944710153ffdc9dd03d612: {
                         table: 'sys_ws_operation'
                         id: 'b56780ad93944710153ffdc9dd03d612'
+                    }
+                    b892098e93d84b10153ffdc9dd03d6ae: {
+                        table: 'sys_cors_rule'
+                        id: 'b892098e93d84b10153ffdc9dd03d6ae'
                     }
                     bb36c9b893500310153ffdc9dd03d64a: {
                         table: 'sys_security_acl'
@@ -436,6 +448,10 @@ declare global {
                     d816c1b893500310153ffdc9dd03d687: {
                         table: 'sys_security_acl'
                         id: 'd816c1b893500310153ffdc9dd03d687'
+                    }
+                    d885c506931c4b10153ffdc9dd03d626: {
+                        table: 'sys_properties'
+                        id: 'd885c506931c4b10153ffdc9dd03d626'
                     }
                     def2963093d80310153ffdc9dd03d6e1: {
                         table: 'sys_ws_definition'

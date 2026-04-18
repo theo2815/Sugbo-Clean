@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Phone, Truck, CalendarDays, Clock, Navigation } from 'lucide-react';
 import { getBarangays, getBarangayBundle } from '../../services/api';
 import { COLORS } from '../../utils/constants';
-import { formatTime12h } from '../../utils/helpers';
+import { formatTime12h, etaFromSchedule } from '../../utils/helpers';
 import Select from './shared/Select';
 import Loading from './shared/Loading';
 import Card from './shared/Card';
@@ -35,6 +35,7 @@ export default function ScheduleChecker() {
     const [barangays, setBarangays] = useState([]);
     const [selectedBarangay, setSelectedBarangay] = useState('');
     const [schedules, setSchedules] = useState([]);
+    const [selectedScheduleId, setSelectedScheduleId] = useState('');
     const [loading, setLoading] = useState(true);
     const [scheduleLoading, setScheduleLoading] = useState(false);
 
@@ -58,6 +59,7 @@ export default function ScheduleChecker() {
     useEffect(() => {
         if (!selectedBarangay) {
             setSchedules([]);
+            setSelectedScheduleId('');
             setHauler(null);
             setRouteStops([]);
             return;
@@ -82,6 +84,36 @@ export default function ScheduleChecker() {
         loadAll();
         return () => { cancelled = true; };
     }, [selectedBarangay, retryKey]);
+
+    useEffect(() => {
+        if (schedules.length === 0) {
+            setSelectedScheduleId('');
+            return;
+        }
+        setSelectedScheduleId((prev) => (
+            prev && schedules.some((s) => s.sys_id === prev) ? prev : schedules[0].sys_id
+        ));
+    }, [schedules]);
+
+    const selectedSchedule = useMemo(
+        () => schedules.find((s) => s.sys_id === selectedScheduleId) || null,
+        [schedules, selectedScheduleId],
+    );
+
+    // Filter stops to the selected schedule only, then derive each stop's ETA
+    // from that schedule's start time + stop offset (single source of truth).
+    const annotatedStops = useMemo(() => {
+        if (!selectedSchedule) return [];
+        return routeStops
+            .filter((s) => s.schedule_id === selectedSchedule.sys_id)
+            .map((s) => ({
+                ...s,
+                estimated_arrival: etaFromSchedule(
+                    selectedSchedule.time_window_start,
+                    s.offset_minutes || 0,
+                ),
+            }));
+    }, [routeStops, selectedSchedule]);
 
     if (loading) return <Loading message="Loading barangays..." />;
 
@@ -154,34 +186,59 @@ export default function ScheduleChecker() {
 
                     {!scheduleLoading && schedules.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {schedules.map((item) => (
-                                <div key={item.sys_id} style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'minmax(110px, 1fr) auto auto',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    padding: '12px 14px',
-                                    borderLeft: `4px solid ${wasteTypeColor[item.waste_type] || COLORS.text.muted}`,
-                                    background: COLORS.bg.muted,
-                                    borderRadius: 8,
+                            {schedules.length > 1 && (
+                                <p style={{
+                                    margin: '0 0 4px', fontSize: 12, color: COLORS.text.muted,
                                 }}>
-                                    <strong style={{ color: COLORS.text.primary }}>{item.day_of_week}</strong>
-                                    <span style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                                        color: COLORS.text.secondary, fontSize: 13,
-                                    }}>
-                                        <Clock size={13} />
-                                        {formatTime12h(item.time_window_start)} – {formatTime12h(item.time_window_end)}
-                                    </span>
-                                    <span style={{
-                                        color: wasteTypeColor[item.waste_type] || COLORS.text.secondary,
-                                        fontWeight: 600,
-                                        fontSize: 13,
-                                    }}>
-                                        {item.waste_type}
-                                    </span>
-                                </div>
-                            ))}
+                                    Tap a pickup day to see its route on the map below.
+                                </p>
+                            )}
+                            {schedules.map((item) => {
+                                const wasteColor = wasteTypeColor[item.waste_type] || COLORS.text.muted;
+                                const isSelected = item.sys_id === selectedScheduleId;
+                                return (
+                                    <button
+                                        key={item.sys_id}
+                                        type="button"
+                                        onClick={() => setSelectedScheduleId(item.sys_id)}
+                                        aria-pressed={isSelected}
+                                        style={{
+                                            width: '100%',
+                                            display: 'grid',
+                                            gridTemplateColumns: 'minmax(110px, 1fr) auto auto',
+                                            alignItems: 'center',
+                                            gap: 12,
+                                            padding: '12px 14px',
+                                            border: 'none',
+                                            borderLeft: `4px solid ${wasteColor}`,
+                                            outline: isSelected ? `2px solid ${wasteColor}` : 'none',
+                                            outlineOffset: isSelected ? -2 : 0,
+                                            background: isSelected ? '#fff' : COLORS.bg.muted,
+                                            borderRadius: 8,
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            font: 'inherit',
+                                            color: 'inherit',
+                                        }}
+                                    >
+                                        <strong style={{ color: COLORS.text.primary }}>{item.day_of_week}</strong>
+                                        <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                                            color: COLORS.text.secondary, fontSize: 13,
+                                        }}>
+                                            <Clock size={13} />
+                                            {formatTime12h(item.time_window_start)} – {formatTime12h(item.time_window_end)}
+                                        </span>
+                                        <span style={{
+                                            color: wasteColor,
+                                            fontWeight: 600,
+                                            fontSize: 13,
+                                        }}>
+                                            {item.waste_type}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </Card>
@@ -239,10 +296,14 @@ export default function ScheduleChecker() {
             {/* ── Route Map ── */}
             {selectedBarangay && !scheduleLoading && hauler && (
                 <Card>
-                    <SectionTitle icon={Navigation} accent={COLORS.primary}>Route</SectionTitle>
+                    <SectionTitle icon={Navigation} accent={COLORS.primary}>
+                        {selectedSchedule
+                            ? `Route — ${selectedSchedule.day_of_week} ${selectedSchedule.waste_type}`
+                            : 'Route'}
+                    </SectionTitle>
 
                     <RouteMap
-                        stops={routeStops}
+                        stops={annotatedStops}
                         center={residentLatLng ?? CEBU_CENTER}
                         zoom={residentLatLng ? 15 : 13}
                         height={340}
@@ -254,9 +315,11 @@ export default function ScheduleChecker() {
                         color: COLORS.text.muted,
                         textAlign: 'center',
                     }}>
-                        {routeStops.length === 0
-                            ? 'No route has been set yet for your barangay.'
-                            : 'Click any pin to see the street label and estimated arrival time.'}
+                        {!selectedSchedule
+                            ? 'No schedule selected.'
+                            : annotatedStops.length === 0
+                                ? 'No route has been set yet for this pickup day.'
+                                : 'Click any pin to see the street label and estimated arrival time.'}
                     </p>
                 </Card>
             )}

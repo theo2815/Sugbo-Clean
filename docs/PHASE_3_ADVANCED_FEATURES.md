@@ -12,32 +12,33 @@ If any Phase 2 item is still flaky, fix it first — Phase 3 assumes a stable fo
 
 ---
 
-## Progress Snapshot (2026-04-17)
+## Progress Snapshot (2026-04-18)
 
 | Milestone | Status | Notes |
 | --- | --- | --- |
 | 3.1 Interactive Route Map | ✅ Shipped | `RouteMap.jsx` lives in `shared/` (used by both resident + admin), not `resident/`. Barangay `u_latitude` / `u_longitude` in place. Markers colored by `point_type` (Start / Stop / End), **not** by `u_stop_status` — re-evaluate once real status lifecycle is wired. |
-| 3.2 Real-Time Status Updates | 🔴 Not started | Still on Phase-2 10s polling in `ReportTracker.jsx`. |
-| 3.3 OAuth 2.0 Admin Login | 🔴 Not started | Basic Auth pilot still active via `AuthContext.jsx` + `verifyAuth()`. |
+| 3.2 Pickup Reminders & Time-Driven Route Status | 🟢 Queued (next) | **Rescoped 2026-04-18** from SSE/WebSocket report-tracker live updates → (a) email pickup reminders via existing `reminder_subscription` table + a ServiceNow scheduled job, and (b) time-driven route stop status (Not Arrived / Current / Passed) computed client-side from `etaFromSchedule()` vs `Date.now()`. No push transport. Original SSE/WS plan retained at the bottom of the milestone as "deferred" in case live report-tracker updates become a separate concern later. |
+| 3.3 OAuth 2.0 Admin Login | ✅ Shipped | Public Client + PKCE against ServiceNow registry "SugboClean Frontend" (no client secret, no backend proxy — the `code_verifier` replaces the secret). `AuthContext` rewritten around a `{kind:'bearer'\|'basic'}` session + auto-refresh 60s before expiry. CORS on `/oauth_token.do` unblocked by extending the NowSDK dev-server `proxyPaths` with the OAuth token endpoint; `OAUTH.tokenUrl` is relative. `DEV_USE_BASIC_AUTH` flipped `false` 2026-04-18 (late). |
 | 3.4 Bilingual (Ceb + En) | 🔴 Not started | No i18n library installed; all copy hardcoded in English. |
 | 3.5 Offline-First PWA | 🔴 Not started | No service worker, no manifest yet. |
 | 3.6 Performance Pass | 🔴 Not started | No Lighthouse CI, no code-splitting on admin. |
 | 3.7 Analytics Enhancements | 🟡 Partial | Base Recharts dashboard wired (bar / pie / line). Period comparison, drill-down, CSV export, time-to-resolution, hauler perf table, saved presets — not started. |
 | 3.8 Production Deployment | 🔴 Not started | Still dev-instance only. No Sentry, no CI/CD, no uptime monitor. |
 
-**Bonus work completed beyond this plan (2026-04-17):**
+**Bonus work completed beyond this plan (2026-04-17 / 2026-04-18):**
 - Admin visual Route Builder (`RouteBuilder.jsx`) with Set Start / Add Stop / Set End tools, draggable pins, inline `HaulerScheduleManager` for schedules CRUD. Not in the original Phase 3 plan but needed once route stops gained per-stop lat/lng + label (see `PHASE_2_BACKEND_INTEGRATION.md` and vault decisions for 2026-04-17).
 - Data model shift: one hauler ↔ one barangay; `route_stop.barangay` is now immutable and inherited from the hauler. Simplified the map UX and retired the `barangay`-PATCH blocker.
 - Glide time serialization helpers centralized in `src/utils/helpers.js` (`toGlideTime` / `fromGlideTime` / `formatTime12h`) — write sends `HH:MM:SS`, display renders 12-hour `10:00 PM`.
 - All four legacy update endpoints (`updateHauler` / `updateWasteItem` / `updateSchedule` / `updateRouteStop`) migrated `PATCH → PUT` to match the `crud()` factory convention; only `PATCH /reports/{id}/status` remains.
 - Orphan cleanup: deleted `admin/ScheduleManager.jsx` + `admin/RouteStopManager.jsx` (superseded), and the `src/mocks/` folder is gone.
+- **2026-04-18 — Schedule ↔ Route linkage redesigned.** Stops now belong to a schedule: new `u_schedule` reference + `u_offset_minutes` integer on `x_1986056_sugbocle_route_stop`; `u_estimated_arrival` is no longer written. New `etaFromSchedule(timeWindowStart, offsetMinutes)` helper in `utils/helpers.js` derives each stop's ETA at render time — editing a schedule's start time now updates every stop's displayed ETA without admin upkeep. `RouteBuilder.jsx` reorganized around **schedule selection first** (not hauler); pending/edit forms use an `offset_minutes` number input; an always-visible "Manage Schedules" section lets an admin create the first schedule from an empty state. `getRouteStops({ scheduleId })` filter added. `ScheduleChecker.jsx` joins each stop to its parent schedule via `s.schedule_id → schedule.sys_id` and passes `annotatedStops` to `RouteMap` so the popup reflects the derived ETA. Queued backend cleanup: `GET /schedules` should return `barangay`/`hauler` as `{ value, display_value }` reference objects; until then, `RouteBuilder` has a name-matching fallback.
 
 ---
 
 ## Part A — What Phase 3 Must Deliver
 
 1. **Interactive Leaflet map** on `/route-map` with numbered stops, dashed route line, clickable pins
-2. **Real-time status updates** via Server-Sent Events or WebSocket (replace Phase-2 polling)
+2. **Pickup reminders + time-driven route stop status** — email reminders dispatched from a ServiceNow scheduled job against `reminder_subscription`, and route stop markers that auto-advance through Not Arrived → Current → Passed on the client by comparing `etaFromSchedule()` to the current time
 3. **OAuth 2.0 admin login** replacing Basic Auth (production-grade security)
 4. **Bilingual support** (Cebuano + English) with an `i18n` layer and language toggle
 5. **Offline-friendly PWA** — cached schedules, "Add to Home Screen" prompt, service worker
@@ -74,68 +75,112 @@ If any Phase 2 item is still flaky, fix it first — Phase 3 assumes a stable fo
 
 ---
 
-### Milestone 3.2 — Real-Time Status Updates (Day 3–4)
+### Milestone 3.2 — Pickup Reminders & Time-Driven Route Status (Day 3–4)
 
-**Status:** 🔴 **Not started.** `ReportTracker.jsx` still runs the Phase-2 10-second polling loop against `getReportByCode`. No SSE / WebSocket code exists, no Business Rule trigger, no stream endpoint.
+**Status:** 🟢 **Queued — next up (planned start 2026-04-19).** Rescoped 2026-04-18 from the original "SSE/WebSocket live report-tracker updates" to the two things the LGU actually needs for Phase 3: **(a) email pickup reminders** triggered by a resident subscribing on `/schedule`, and **(b) time-driven route stop status lifecycle** (Not Arrived / Current / Passed) computed client-side from `etaFromSchedule()` against the current clock. No SSE, no WebSocket — the route-map color change is derived at render time from data we already fetch.
 
-**Outcome:** Resident tracker reflects status changes **instantly** (sub-second), not after a 10-second poll.
+**Why the rescope:** SSE/WS on ServiceNow's dev instance is infrastructure-heavy and only buys sub-second latency on one screen (the report tracker), which already meets product needs at 10s polling. Meanwhile the original Phase-2 `reminder_subscription` table has never been wired to actually send an email, and the `u_stop_status` field has no driver so `RouteMap` still colors by `point_type`. This milestone closes both gaps with no new transport layer. The original SSE/WS plan is preserved at the bottom of this section as **Deferred** in case live report-tracker updates come back as a separate concern.
 
-Two viable transports — pick one based on ServiceNow capability testing:
+**Outcome:**
+1. A resident who enters their email on `/schedule` receives a pickup reminder email before their barangay's next scheduled collection.
+2. Route stop markers on both `/schedule` (resident) and `/admin/schedules` (admin) reflect live progress — upstream stops show as **Not Arrived** (grey), the stop whose ETA is currently nearest to `now` shows as **Current** (yellow), stops whose ETA has already passed show as **Passed** (green) — and the UI advances automatically as the clock crosses each stop's ETA.
 
-**Option A — Server-Sent Events (SSE) via a Scripted REST Endpoint**
-- Easier on ServiceNow (no socket infrastructure), one-way server → client
-- Frontend: `const es = new EventSource('/api/.../reports/{code}/stream')`
-- Backend: a Scripted REST endpoint that keeps the connection open and pushes a JSON event whenever the underlying report's `u_status` changes (use a Business Rule trigger + a queue table)
+---
 
-**Option B — WebSocket via ServiceNow's Notify / MID Server**
-- Bi-directional, lower overhead per message
-- More infrastructure setup on the ServiceNow side
+**Part A — Email pickup reminders (ServiceNow side + frontend wiring)**
 
-- [ ] **Validate with the ServiceNow admin** which option is feasible on the `dev375738` instance
-- [ ] **Build the server-side event trigger:**
-  - On `after update` of `x_1986056_sugbocle_report` where `u_status` changed → push to SSE stream keyed by `u_report_code`
-- [ ] **Frontend:** rewrite `ReportTracker.jsx` to:
-  - On mount, open the SSE/WS connection for the given report code
-  - On message, update local status state
-  - Show a subtle "Live ●" indicator when connected, grey dot when disconnected
-  - Auto-reconnect with exponential backoff (1s, 2s, 4s, max 30s) on drop
-  - Fallback to 30s polling if SSE/WS fails entirely
-- [ ] **Remove the Phase-2 10-second polling loop** — real-time replaces it
+- [ ] **Confirm `reminder_subscription` table is write-ready** — Phase 2 seeded it with `u_email`, `u_barangay`, `u_active`; verify no missing columns for an unsubscribe token.
+- [ ] **Add `u_unsubscribe_token` (String, 32)** to `reminder_subscription` — server-generated on insert via a Business Rule, stored once, used to build the unsubscribe link.
+- [ ] **Build the Scheduled Job** on ServiceNow — `SugboClean: Send pickup reminders`:
+  - Runs every 15 minutes
+  - For each `schedule` where `u_day_of_week` == today and `u_time_window_start` is within the next 60 min (configurable)
+  - Join to active `reminder_subscription` rows on `u_barangay`
+  - Send email via `gs.eventQueue('x_1986056_sugbocle.pickup_reminder', ...)` → Notification template fires
+  - Dedupe: don't re-send for the same `(subscription, schedule, pickup_date)` tuple within 24h (new `u_last_sent_at` column on subscription or a tiny audit table — decide during implementation)
+- [ ] **Email template** (`sys_email` / Notification):
+  - Subject: `Pickup reminder — {barangay} at {time_window_start} today`
+  - Body: schedule details + unsubscribe link `${instance}/api/1986056/sugboclean_api/reminders/unsubscribe?token={u_unsubscribe_token}`
+  - Cebuano body follows Milestone 3.4 i18n — ship English first, add Cebuano when 3.4 lands
+- [ ] **New endpoint** `GET /reminders/unsubscribe?token=…` (scripted REST, public, no auth):
+  - Looks up the token, flips `u_active` to `false`, renders a minimal confirmation HTML page
+  - Returns 404 on unknown token (don't leak whether the token ever existed)
+- [ ] **Frontend: confirm `ScheduleChecker.jsx` subscribe form** already POSTs to `createReminder()` in `src/services/api.js`. Audit: show a success toast + disable the form for 30s on 200; surface the error on 4xx/5xx.
 
-**Acceptance:** Admin flips a status → resident tracker updates in under 2 seconds, no refresh.
+**Part B — Time-driven route stop status (pure frontend)**
+
+- [ ] **New helper** `computeStopStatus(stop, schedule, now)` in `src/utils/helpers.js`:
+  - Computes each stop's absolute ETA via `etaFromSchedule(schedule.u_time_window_start, stop.u_offset_minutes)` + today's date (with midnight-wrap handling reused from `etaFromSchedule`)
+  - Returns `'Not Arrived' | 'Current' | 'Passed'`: `Current` = the stop whose ETA is the latest one still ≤ `now`; stops with ETA > `now` → `Not Arrived`; stops with ETA < `now` that aren't `Current` → `Passed`
+  - Pure function; no side-effects, no network
+- [ ] **`RouteMap.jsx` `statusMode` prop** — `'point_type' | 'live'`. Default stays `'point_type'` for backward compatibility; admin's `/admin/schedules` and resident `/schedule` pass `'live'`. Color palette:
+  - Not Arrived → grey (`#9CA3AF`)
+  - Current → yellow (`#F59E0B`), gentle pulse CSS animation
+  - Passed → green (`#16A34A`)
+  - Falls back to `point_type` colors when `statusMode='live'` but `schedule` / `offset_minutes` missing
+- [ ] **1-minute ticker** on map-hosting pages (`ScheduleChecker.jsx`, admin `RouteBuilder.jsx`) — `useEffect` + `setInterval(() => setNow(new Date()), 60_000)`, cleared on unmount. No refetch, just a re-render so `computeStopStatus(..., now)` re-runs.
+- [ ] **Popup copy** — swap the existing "status" line in the `RouteMap` popup to render the computed status when `statusMode='live'` (instead of `u_stop_status` from the record, which isn't driven yet).
+
+**Acceptance:**
+1. Subscribe on `/schedule` with a real email for a barangay whose next pickup is in ≤ 60 min. Within the next scheduled-job fire (≤ 15 min), an email lands in the inbox with correct schedule + a working unsubscribe link.
+2. Click unsubscribe → subscription `u_active` flips to `false` → no further emails for that `(email, barangay)` pair.
+3. Open `/admin/schedules`, select a schedule whose time window spans `now`. The stop whose ETA is nearest-but-not-past shows yellow; upstream stops grey; downstream (already passed) stops green. Advance the system clock past the next stop's ETA — without refreshing, within 60s the yellow marker advances to the next stop and the previous yellow turns green.
+
+---
+
+**Deferred (original 3.2 plan — SSE/WS live report tracker, not in scope for this rescope):**
+
+Kept here for future reference. Do not start without an explicit scope-reopen.
+
+- Validate SSE vs WebSocket feasibility on `dev375738`
+- Business Rule trigger on `after update` of `x_1986056_sugbocle_report` where `u_status` changed → push to SSE stream keyed by `u_report_code`
+- Rewrite `ReportTracker.jsx` around `EventSource` with auto-reconnect + polling fallback
+- Remove the current 10-second polling loop
+
+Original acceptance: admin flips a status → resident tracker updates in under 2 seconds, no refresh.
 
 ---
 
 ### Milestone 3.3 — OAuth 2.0 Admin Login (Day 5–6)
 
-**Status:** 🔴 **Not started.** Basic Auth pilot is still the only login path: `AuthContext.jsx` stores `Basic ${btoa(...)}` in memory + `sessionStorage`, `verifyAuth()` in `api.js` performs the test call on login. No OAuth registry on the ServiceNow side, no callback route, no token refresh logic.
+**Status:** ✅ **Shipped 2026-04-18 (late).** Authorization Code + PKCE flow against ServiceNow registry entry "SugboClean Frontend". **Deviation from original plan:** no backend token-exchange proxy — instead the frontend is a **Public Client + PKCE**, so `code_verifier` replaces the client secret and the whole flow is pure SPA. See vault `decisions.md` 2026-04-18 "OAuth 2.0 Authorization Code + PKCE chosen over backend token-exchange proxy" for the rationale. **Second deviation:** the `VITE_DEV_USE_BASIC_AUTH` env-var was implemented as a `DEV_USE_BASIC_AUTH` constant in `src/utils/constants.js` (NowSDK doesn't use Vite), flipped `false` 2026-04-18 once OAuth was verified.
 
-**Outcome:** Admin login uses ServiceNow OAuth — no more Basic Auth, no passwords in memory.
+**Outcome:** Admin login uses ServiceNow OAuth — no more Basic Auth, no passwords in memory. ✅
 
-- [ ] **ServiceNow side** (ask the instance admin to configure):
-  - Register an OAuth Application Registry entry for SugboClean
-  - Grant type: **Authorization Code** (not Password — that's just Basic Auth with extra steps)
-  - Redirect URI: production domain + `http://localhost:<port>/admin/oauth/callback`
-  - Capture `client_id` (the `client_secret` stays on a backend proxy, not the frontend)
-- [ ] **Frontend flow:**
-  1. User clicks "Log in with ServiceNow" on `/admin/login`
-  2. Redirect to `${instance}/oauth_auth.do?response_type=code&client_id=...&redirect_uri=...&state=<nonce>`
-  3. User authenticates on ServiceNow, redirects back to `/admin/oauth/callback?code=...`
-  4. Callback exchanges `code` for a token (via a small backend proxy endpoint, to keep the secret server-side)
-  5. Store token in memory + `sessionStorage`, refresh via refresh-token flow
-- [ ] **Rewrite `AuthContext`:**
-  - Replace `Basic ${btoa(...)}` with `Bearer ${token}`
-  - Add `refreshToken()` logic, triggered when a 401 comes back
-- [ ] **Lint rule:** banned-import regex for `btoa(` in `src/context/` and `src/services/`
-- [ ] **Migration:** Basic Auth path stays as a local-dev fallback behind `VITE_DEV_USE_BASIC_AUTH=true`; production bundles reject it
+- [x] **ServiceNow side** (configured by user):
+  - OAuth Application Registry entry "SugboClean Frontend", `client_id: bdd141a3648c4f8cb8497350b05b8efa`
+  - Grant type: **Authorization Code**
+  - `public_client: true` — no secret held anywhere (PKCE replaces it)
+  - Redirect URI: `http://localhost:3000/` (site root so the dev server doesn't need SPA history fallback on a dedicated callback path; `main.jsx` hoists `?code&state` into the hash route)
+  - ⚠️ **Still queued:** flip `oauth_entity.use_pkce` from `'false'` → `'true'` on the instance UI. Flow works without it but closes a gap across ServiceNow versions. `src/fluent/generated/` is machine-generated per `CLAUDE.md §2` so it's an instance-side change, not a repo edit.
+- [x] **Frontend flow** (implemented in `src/services/oauth.js` + `src/pages/admin/OAuthCallback.jsx`):
+  1. User clicks "Log in with ServiceNow" on `/admin/login` — `beginOAuthLogin(returnTo)` generates `code_verifier` (32 random bytes → base64url), derives `code_challenge` via SHA-256, mints a random `state`, persists all three in `sessionStorage`.
+  2. Redirect to `${instance}/oauth_auth.do?response_type=code&client_id=…&redirect_uri=…&state=…&code_challenge=…&code_challenge_method=S256`
+  3. User authenticates on ServiceNow, redirects back to `http://localhost:3000/?code=…&state=…`
+  4. `src/client/main.jsx` intercepts the `?code&state` on **any path** pre-mount and hoists them into the hash route `/#/admin/oauth/callback` so the flow works regardless of which path the static dev server serves `index.html` from.
+  5. `OAuthCallback.jsx` calls `completeOAuthLogin({code, state})` → POSTs `grant_type=authorization_code&code=…&client_id=…&redirect_uri=…&code_verifier=…` to `/oauth_token.do` (relative; proxied through the NowSDK dev server — see CORS note below) → stores the bearer + refresh token in memory.
+- [x] **Rewrote `AuthContext.jsx`:**
+  - Session shape is `{ kind: 'bearer' | 'basic', ... }`; `getAuthHeader()` is synchronous for `api.js`.
+  - Bearer tokens auto-refresh via `setTimeout` 60s before `expiresAt` (`OAUTH.refreshMarginMs`). Proactive refresh, not reactive-on-401.
+  - `loginBasic()` kept as dev fallback gated on `DEV_USE_BASIC_AUTH`; now throws `"Basic Auth is disabled in this build."` since the flag is `false`. Removal queued one release out.
+  - Legacy `sc_auth_header` sessionStorage key read once for one-release compat, never written.
+- [ ] **Lint rule:** banned-import regex for `btoa(` in `src/context/` and `src/services/` — ⚠️ still pending. `AuthContext.loginBasic` uses `btoa` for the dev fallback; lint rule should land alongside `loginBasic()` removal.
+- [x] **Migration:** `DEV_USE_BASIC_AUTH` flag in `src/utils/constants.js` (renamed from the planned `VITE_DEV_USE_BASIC_AUTH` — NowSDK ≠ Vite). Flipped `true → false` 2026-04-18 once OAuth was verified.
+
+**CORS on `/oauth_token.do` (shipped fix):**
+- Initial attempt failed: `POST /oauth_token.do` from `http://localhost:3000` blocked with "No 'Access-Control-Allow-Origin' header". The `sys_cors_rule` records committed in `bfe3d66` don't help — `sys_cors_rule` is scoped to a specific REST API record (`rest_api: 090c5ee…`) and `/oauth_token.do` lives outside the REST API framework.
+- Fix landed as a two-line change against NowSDK's **built-in** dev server (not a custom sidecar):
+  - `now.dev.mjs` now passes an explicit `proxyPaths` to `servicenowFrontEndPlugins()` that lists the 7 NowSDK defaults + `/oauth_token.do`.
+  - `src/utils/constants.js` `OAUTH.tokenUrl` changed from `'https://dev375738.service-now.com/oauth_token.do'` → `'/oauth_token.do'` so `fetch()` is same-origin to the dev server; `authorizeUrl` stays absolute (full-page nav, CORS doesn't apply).
+- Basic Auth injection risk (NowSDK dev-proxy rewrites `Authorization` on every proxied request with the admin credential from `now-sdk auth`) turned out to be a non-issue: ServiceNow ignores the injected header for `public_client: 'true'` and validates via PKCE `code_verifier` only.
+- See vault `decisions.md` 2026-04-18 "CORS unblock: extend NowSDK `proxyPaths` rather than deploy-to-instance or sidecar" for alternatives considered.
 
 **Security deliverables:**
-- No client secret in the frontend bundle
-- Tokens never logged
-- CSRF nonce in `state` parameter, verified on callback
-- Access token expiry respected (refresh before expiry, not reactive on 401)
+- [x] No client secret in the frontend bundle — none exists at all (Public Client + PKCE)
+- [x] Tokens never logged — `AuthContext` stores in memory + `sessionStorage`; no console paths
+- [x] CSRF nonce in `state` parameter, verified on callback — 16 random bytes, checked before token exchange
+- [x] Access token expiry respected — proactive refresh 60s before `expiresAt` via `setTimeout`, not reactive-on-401
 
-**Acceptance:** Admin clicks login → redirected to ServiceNow → logs in → redirected back authed; F5 still authed; close tab → logged out; 401 mid-session → silent refresh, no re-login prompt.
+**Acceptance:** Admin clicks login → redirected to ServiceNow → logs in → redirected back authed; F5 still authed; close tab → logged out; 401 mid-session → silent refresh, no re-login prompt. ✅ Verified by user 2026-04-18 (late).
 
 ---
 
@@ -258,11 +303,11 @@ Two viable transports — pick one based on ServiceNow capability testing:
 
 ## Part C — Definition of Done
 
-Phase 3 is done when all of these hold (status as of 2026-04-17):
+Phase 3 is done when all of these hold (status as of 2026-04-18):
 
 1. 🟡 Route map renders hauler routes with correct stop order — **stop order ✅, "live stop status" coloring ❌ (currently colored by `point_type`)**
-2. 🔴 Admin changes a report status → resident tracker visibly updates in ≤ 2 seconds, no refresh — **still 10s polling**
-3. 🔴 Admin login flow uses OAuth (no `btoa(`) in the production bundle) — **Basic Auth pilot only**
+2. 🔴 Pickup reminder emails dispatch from the ServiceNow scheduled job for active subscriptions **and** route stop markers auto-advance Not Arrived → Current → Passed on both resident `/schedule` and admin `/admin/schedules` based on computed ETA vs `now` — **rescoped 2026-04-18 (was: SSE/WS live report-tracker updates, now deferred)**
+3. ✅ Admin login flow uses OAuth — **PKCE shipped and verified 2026-04-18; `DEV_USE_BASIC_AUTH=false`. `btoa(` still reachable via the deprecated `loginBasic()` code path in `AuthContext`; scheduled for removal one release out along with the lint rule.**
 4. 🔴 Every user-facing string has a Cebuano translation; language toggle persists
 5. 🔴 Service worker registered; `chrome://inspect → Application → Service Workers` shows it active
 6. 🔴 Offline reload of the app still boots; queued reports send on reconnect

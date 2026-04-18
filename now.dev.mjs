@@ -12,6 +12,19 @@ export default async ({ rootDir, config, fs, path, logger, credential }) => {
             scope: config.scope,
             rootDir: clientDir,
             watchPaths: [staticContentDir],
+            // Extend NowSDK's built-in proxyPaths with /oauth_token.do so the PKCE
+            // token exchange is same-origin to the dev server and bypasses the
+            // /oauth_token.do CORS limitation (sys_cors_rule is REST-API-scoped).
+            proxyPaths: [
+                '/api',
+                '/amb',
+                '/scripts/',
+                '/images/@servicenow/',
+                '/uxasset/externals',
+                '/$uxappimmutables.do',
+                '/uxta',
+                '/oauth_token.do',
+            ],
             credential,
         }),
         output: {

@@ -220,6 +220,22 @@ The `x_1986056_sugbocle_barangay` table now exposes geo fields used by the admin
 
 Wired in `src/services/api.js` via `barangayAPI = crud('barangays')`. Note the new `crud()` factory uses `PUT` for updates (the new convention); existing schedule/route-stop/hauler/waste-item updates remain on `PATCH` for backwards compatibility.
 
+### Route-stop schema additions (2026-04-18)
+
+The `x_1986056_sugbocle_route_stop` table now links stops to a specific schedule and derives ETAs from an offset rather than storing an absolute arrival time:
+
+| Field                 | Type                                      | Notes                                                                                       |
+| --------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `u_schedule`          | Reference → `x_1986056_sugbocle_schedule` | Required on create. **Immutable on PUT** — to re-parent a stop, delete and recreate.        |
+| `u_offset_minutes`    | Integer (nullable)                        | Minutes after `schedule.u_time_window_start`. Frontend derives ETA via `etaFromSchedule()`. |
+| `u_estimated_arrival` | Glide Time                                | **Legacy / do not write.** Kept for backwards compatibility; frontend no longer sends it.   |
+
+`u_barangay` on an existing `route_stop` is **immutable on PUT** as well (the scoped REST handler silently drops the field); use delete+create to move a stop between barangays.
+
+ETA derivation is frontend-only via `etaFromSchedule(schedule.u_time_window_start, route_stop.u_offset_minutes)` in `src/utils/helpers.js` (wraps over midnight). This is the **single source of truth** for the ETA displayed in admin `RouteBuilder` pins, resident `ScheduleChecker` map popups, and sidebar stop lists — never duplicate this computation elsewhere.
+
+`GET /route-stops` supports a `schedule` query param and returns stops with flattened reference fields via `normalizeRecord` (e.g. `schedule` display + `schedule_id` sys_id, same for `barangay` and `hauler`). `GET /schedules` was cleaned up 2026-04-18 and now returns the same `{value, display_value}` envelope for `barangay` and `hauler`, so the former name-matching fallback in `RouteBuilder.jsx` / `HaulerScheduleManager.jsx` has been removed.
+
 ### Service-layer pattern (required)
 
 All HTTP calls go through `src/client/services/api.js` (to be created in Phase 2) using this shape:

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  getHaulers, getBarangays, getRouteStops,
+  getHaulers, getBarangays, getSchedules, getRouteStops,
   createRouteStop, updateRouteStop, deleteRouteStop,
 } from '../../../services/api';
 import { COLORS, STOP_STATUSES } from '../../../utils/constants';
-import { fromGlideTime, toGlideTime, formatTime12h } from '../../../utils/helpers';
+import { etaFromSchedule, formatTime12h } from '../../../utils/helpers';
 import Button from '../shared/Button';
 import Select from '../shared/Select';
 import Loading from '../shared/Loading';
@@ -33,11 +33,23 @@ function pointType(s) {
   return String(s?.point_type || '').toLowerCase();
 }
 
+function scheduleLabel(s) {
+  const hauler = s.hauler || '—';
+  const waste = s.waste_type || '—';
+  const day = s.day_of_week || '—';
+  const start = formatTime12h(s.time_window_start);
+  const end = formatTime12h(s.time_window_end);
+  const window = start && end ? `${start}–${end}` : start || end || '';
+  return `${hauler} · ${waste} · ${day}${window ? ` ${window}` : ''}`;
+}
+
 export default function RouteBuilder() {
   const [haulers, setHaulers] = useState([]);
   const [barangays, setBarangays] = useState([]);
+  const [allSchedules, setAllSchedules] = useState([]);
   const [stops, setStops] = useState([]);
-  const [haulerId, setHaulerId] = useState('');
+  const [scheduleId, setScheduleId] = useState('');
+  const [manageHaulerId, setManageHaulerId] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState(null);
@@ -45,12 +57,12 @@ export default function RouteBuilder() {
 
   // Unsaved stop created by a map click — rendered on the map immediately so
   // the admin sees a pin the moment they click. Committed to the backend once
-  // the label/ETA form is submitted.
+  // the label/offset form is submitted.
   const [pendingStop, setPendingStop] = useState(null);
-  const [pendingForm, setPendingForm] = useState({ label: '', estimated_arrival: '' });
+  const [pendingForm, setPendingForm] = useState({ label: '', offset_minutes: '' });
 
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ label: '', estimated_arrival: '', stop_status: 'Not Arrived' });
+  const [editForm, setEditForm] = useState({ label: '', offset_minutes: '', stop_status: 'Not Arrived' });
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -60,7 +72,7 @@ export default function RouteBuilder() {
   useEffect(() => { loadInitial(); }, []);
 
   useEffect(() => {
-    if (!haulerId) {
+    if (!scheduleId) {
       setStops([]);
       setPendingStop(null);
       setMode(null);
@@ -69,15 +81,20 @@ export default function RouteBuilder() {
     reloadStops();
     setPendingStop(null);
     setMode(null);
-  }, [haulerId]);
+  }, [scheduleId]);
 
   async function loadInitial() {
     setLoading(true);
     try {
-      const [haulRes, brgyRes] = await Promise.all([getHaulers(), getBarangays()]);
+      const [haulRes, brgyRes, schedRes] = await Promise.all([
+        getHaulers(), getBarangays(), getSchedules(),
+      ]);
       setHaulers(haulRes.result);
       setBarangays(brgyRes.result);
-      if (!haulerId && haulRes.result.length > 0) setHaulerId(haulRes.result[0].sys_id);
+      setAllSchedules(schedRes.result);
+      if (!scheduleId && schedRes.result.length > 0) {
+        setScheduleId(schedRes.result[0].sys_id);
+      }
     } catch (err) {
       setToast({ message: err?.message || 'Failed to load.', type: 'error' });
     } finally {
@@ -87,39 +104,78 @@ export default function RouteBuilder() {
 
   async function reloadStops() {
     try {
-      const res = await getRouteStops({ haulerId });
+      const res = await getRouteStops({ scheduleId });
       setStops(res.result);
     } catch (err) {
       setToast({ message: err?.message || 'Failed to load stops.', type: 'error' });
     }
   }
 
-  const hauler = useMemo(
-    () => haulers.find((h) => h.sys_id === haulerId) || null,
-    [haulers, haulerId],
+  async function reloadAllSchedules() {
+    try {
+      const res = await getSchedules();
+      setAllSchedules(res.result);
+      if (!scheduleId && res.result.length > 0) setScheduleId(res.result[0].sys_id);
+    } catch (err) {
+      setToast({ message: err?.message || 'Failed to refresh schedules.', type: 'error' });
+    }
+  }
+
+  const selectedSchedule = useMemo(
+    () => allSchedules.find((s) => s.sys_id === scheduleId) || null,
+    [allSchedules, scheduleId],
   );
 
-  const haulerBarangayId = hauler?.barangay_id || '';
+  const hauler = useMemo(() => {
+    if (!selectedSchedule?.hauler_id) return null;
+    return haulers.find((h) => h.sys_id === selectedSchedule.hauler_id) || null;
+  }, [haulers, selectedSchedule]);
+
+  // "Manage Schedules" operates on its own hauler, independent of whatever
+  // schedule is loaded into the route builder — admins can create the first
+  // schedule for a hauler that has none yet. Defaults to the selected
+  // schedule's hauler, or the first hauler overall if none selected.
+  useEffect(() => {
+    if (manageHaulerId) return;
+    if (selectedSchedule?.hauler_id) setManageHaulerId(selectedSchedule.hauler_id);
+    else if (haulers.length > 0) setManageHaulerId(haulers[0].sys_id);
+  }, [selectedSchedule, haulers, manageHaulerId]);
+
+  const manageHauler = useMemo(
+    () => haulers.find((h) => h.sys_id === manageHaulerId) || null,
+    [haulers, manageHaulerId],
+  );
+
+  const haulerId = hauler?.sys_id || '';
+
+  const scheduleBarangayId = selectedSchedule?.barangay_id || '';
+
+  const windowStart = selectedSchedule?.time_window_start || '';
 
   const mapCenter = useMemo(() => {
-    if (!hauler?.barangay_id) return CEBU_CENTER;
-    const b = barangays.find((x) => x.sys_id === hauler.barangay_id);
+    if (!scheduleBarangayId) return CEBU_CENTER;
+    const b = barangays.find((x) => x.sys_id === scheduleBarangayId);
     const lat = Number(b?.latitude);
     const lng = Number(b?.longitude);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return CEBU_CENTER;
     return [lat, lng];
-  }, [hauler, barangays]);
+  }, [scheduleBarangayId, barangays]);
 
   const mapZoom = mapCenter === CEBU_CENTER ? 12 : 15;
 
   const startStop = useMemo(() => stops.find((s) => pointType(s) === 'start') || null, [stops]);
   const endStop = useMemo(() => stops.find((s) => pointType(s) === 'end') || null, [stops]);
 
-  // Temp stop merged into the render list so the map shows it immediately.
-  const visibleStops = useMemo(
-    () => (pendingStop ? [...stops, pendingStop] : stops),
-    [stops, pendingStop],
-  );
+  // Annotate each stop with a derived `estimated_arrival` so the shared
+  // RouteMap popup (which reads that field) keeps working without knowing
+  // about schedules.
+  const visibleStops = useMemo(() => {
+    const merged = pendingStop ? [...stops, pendingStop] : stops;
+    return merged.map((s) => ({
+      ...s,
+      estimated_arrival: etaFromSchedule(windowStart, s.offset_minutes || 0),
+    }));
+  }, [stops, pendingStop, windowStart]);
 
   // ---------- Map click ----------
 
@@ -130,9 +186,9 @@ export default function RouteBuilder() {
   }
 
   function handleMapClick({ latitude, longitude }) {
-    if (!mode || !haulerId || busy || pendingStop) return;
-    if (!haulerBarangayId) {
-      setToast({ message: 'This hauler has no assigned barangay. Set one in the Hauler page first.', type: 'error' });
+    if (!mode || !scheduleId || busy || pendingStop) return;
+    if (!scheduleBarangayId) {
+      setToast({ message: 'This schedule has no barangay set. Check the hauler assignment first.', type: 'error' });
       return;
     }
     if (mode === 'start' && startStop) {
@@ -151,10 +207,10 @@ export default function RouteBuilder() {
       point_type: mode,
       stop_order: previewOrder(mode),
       label: '',
-      estimated_arrival: '',
+      offset_minutes: 0,
       stop_status: 'Not Arrived',
     });
-    setPendingForm({ label: '', estimated_arrival: '' });
+    setPendingForm({ label: '', offset_minutes: '' });
   }
 
   async function commitPending(e) {
@@ -162,7 +218,16 @@ export default function RouteBuilder() {
     if (!pendingStop || busy) return;
     const { latitude, longitude, point_type } = pendingStop;
     const { label } = pendingForm;
-    const estimated_arrival = toGlideTime(pendingForm.estimated_arrival);
+    const offset_minutes = Number(pendingForm.offset_minutes) || 0;
+    const common = {
+      schedule: scheduleId,
+      barangay: scheduleBarangayId,
+      latitude,
+      longitude,
+      label,
+      offset_minutes,
+      stop_status: 'Not Arrived',
+    };
     setBusy(true);
     try {
       if (point_type === 'start') {
@@ -171,61 +236,21 @@ export default function RouteBuilder() {
             updateRouteStop(s.sys_id, { stop_order: (s.stop_order || 0) + 1 })
           ));
         }
-        await createRouteStop({
-          hauler: haulerId,
-          barangay: haulerBarangayId,
-          latitude,
-          longitude,
-          label,
-          estimated_arrival,
-          stop_status: 'Not Arrived',
-          stop_order: 1,
-          point_type: 'start',
-        });
+        await createRouteStop({ ...common, stop_order: 1, point_type: 'start' });
       } else if (point_type === 'end') {
-        await createRouteStop({
-          hauler: haulerId,
-          barangay: haulerBarangayId,
-          latitude,
-          longitude,
-          label,
-          estimated_arrival,
-          stop_status: 'Not Arrived',
-          stop_order: maxOrder(stops) + 1,
-          point_type: 'end',
-        });
+        await createRouteStop({ ...common, stop_order: maxOrder(stops) + 1, point_type: 'end' });
       } else {
         // add stop: insert before End if it exists, else append.
         if (endStop) {
           const insertOrder = endStop.stop_order;
           await updateRouteStop(endStop.sys_id, { stop_order: endStop.stop_order + 1 });
-          await createRouteStop({
-            hauler: haulerId,
-            barangay: haulerBarangayId,
-            latitude,
-            longitude,
-            label,
-            estimated_arrival,
-            stop_status: 'Not Arrived',
-            stop_order: insertOrder,
-            point_type: 'stop',
-          });
+          await createRouteStop({ ...common, stop_order: insertOrder, point_type: 'stop' });
         } else {
-          await createRouteStop({
-            hauler: haulerId,
-            barangay: haulerBarangayId,
-            latitude,
-            longitude,
-            label,
-            estimated_arrival,
-            stop_status: 'Not Arrived',
-            stop_order: maxOrder(stops) + 1,
-            point_type: 'stop',
-          });
+          await createRouteStop({ ...common, stop_order: maxOrder(stops) + 1, point_type: 'stop' });
         }
       }
       setPendingStop(null);
-      setPendingForm({ label: '', estimated_arrival: '' });
+      setPendingForm({ label: '', offset_minutes: '' });
       setToast({ message: 'Stop saved.', type: 'success' });
       await reloadStops();
       if (!stayInMode) setMode(null);
@@ -238,7 +263,7 @@ export default function RouteBuilder() {
 
   function cancelPending() {
     setPendingStop(null);
-    setPendingForm({ label: '', estimated_arrival: '' });
+    setPendingForm({ label: '', offset_minutes: '' });
   }
 
   // ---------- Stop drag / click ----------
@@ -297,7 +322,7 @@ export default function RouteBuilder() {
     setEditingId(stop.sys_id);
     setEditForm({
       label: stop.label || '',
-      estimated_arrival: fromGlideTime(stop.estimated_arrival),
+      offset_minutes: stop.offset_minutes != null ? String(stop.offset_minutes) : '0',
       stop_status: normalizeStatus(stop.stop_status),
     });
   }
@@ -307,8 +332,9 @@ export default function RouteBuilder() {
     setBusy(true);
     try {
       await updateRouteStop(editingId, {
-        ...editForm,
-        estimated_arrival: toGlideTime(editForm.estimated_arrival),
+        label: editForm.label,
+        offset_minutes: Number(editForm.offset_minutes) || 0,
+        stop_status: editForm.stop_status,
       });
       setEditingId(null);
       setToast({ message: 'Stop updated.', type: 'success' });
@@ -349,41 +375,74 @@ export default function RouteBuilder() {
   const activeMode = MODES.find((m) => m.key === mode);
   const sortedStops = [...stops].sort((a, b) => (a.stop_order || 0) - (b.stop_order || 0));
 
+  const pendingOffsetNum = Number(pendingForm.offset_minutes) || 0;
+  const editOffsetNum = Number(editForm.offset_minutes) || 0;
+  const pendingEtaPreview = windowStart
+    ? formatTime12h(etaFromSchedule(windowStart, pendingOffsetNum))
+    : '';
+  const editEtaPreview = windowStart
+    ? formatTime12h(etaFromSchedule(windowStart, editOffsetNum))
+    : '';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Hauler picker */}
+      {/* Manage Schedules — top. Independent of the route picker so admins can
+          create the first schedule when none exist, or manage a different
+          hauler's schedules while a different route is open. */}
+      <section style={styles.manageBox}>
+        <div style={styles.manageHeader}>
+          <h4 style={{ ...styles.h4, margin: 0 }}>Manage Schedules</h4>
+          <div style={{ minWidth: 240 }}>
+            <Select
+              name="manageHauler"
+              value={manageHaulerId}
+              onChange={(e) => setManageHaulerId(e.target.value)}
+              options={haulers.map((h) => ({ value: h.sys_id, label: h.name }))}
+              placeholder="-- Pick a hauler --"
+            />
+          </div>
+        </div>
+        {manageHauler
+          ? <HaulerScheduleManager hauler={manageHauler} onChanged={reloadAllSchedules} />
+          : <p style={{ color: COLORS.text.muted, fontSize: 13, margin: 0 }}>Pick a hauler to view or create their schedules.</p>}
+      </section>
+
+      {/* Schedule picker */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0, color: COLORS.text.primary }}>Schedules & Route</h3>
-        <div style={{ minWidth: 240 }}>
+        <div style={{ minWidth: 320 }}>
           <Select
-            name="hauler"
-            value={haulerId}
-            onChange={(e) => setHaulerId(e.target.value)}
-            options={haulers.map((h) => ({ value: h.sys_id, label: h.name }))}
-            placeholder="-- Select hauler --"
+            name="schedule"
+            value={scheduleId}
+            onChange={(e) => setScheduleId(e.target.value)}
+            options={allSchedules.map((s) => ({ value: s.sys_id, label: scheduleLabel(s) }))}
+            placeholder={allSchedules.length === 0 ? '-- No schedules yet --' : '-- Select schedule --'}
           />
         </div>
-        {hauler && (
+        {selectedSchedule && (
           <span style={{ color: COLORS.text.muted, fontSize: 13 }}>
-            Assigned barangay: <strong>{hauler.barangay || '—'}</strong>
+            Barangay: <strong>{selectedSchedule.barangay || hauler?.barangay || '—'}</strong>
             {' · '}
             {stops.length} stop{stops.length === 1 ? '' : 's'}
           </span>
         )}
       </div>
 
-      {!haulerId ? (
-        <p style={{ color: COLORS.text.muted }}>Pick a hauler to manage their schedules and route.</p>
-      ) : (
-        <>
-          {/* Schedules CRUD */}
-          <HaulerScheduleManager hauler={hauler} />
+      {allSchedules.length === 0 ? (
+        <p style={{ color: COLORS.text.muted }}>
+          No schedules exist yet. Use <strong>Manage Schedules</strong> above to create your first one.
+        </p>
+      ) : !scheduleId ? (
+        <p style={{ color: COLORS.text.muted }}>Pick a schedule to plan its route.</p>
+      ) : null}
 
+      {scheduleId && (
+        <>
           {/* Route builder */}
           <div style={styles.builderHeader}>
             <h4 style={styles.h4}>Route Map</h4>
             <span style={{ fontSize: 12, color: COLORS.text.muted }}>
-              Pick a tool below, then click the map to place a pin.
+              Pick a tool below, then click the map to place a pin. ETAs are computed from the schedule's start time.
             </span>
           </div>
 
@@ -429,7 +488,7 @@ export default function RouteBuilder() {
             </label>
             <span style={styles.hint}>
               {pendingStop
-                ? 'Fill in the label & ETA on the left, then Save. Drag the new pin to fine-tune.'
+                ? 'Fill in the label & offset on the left, then Save. Drag the new pin to fine-tune.'
                 : activeMode ? activeMode.help : 'Pick a tool, then click the map. Drag a stop pin to move it.'}
             </span>
           </div>
@@ -464,14 +523,31 @@ export default function RouteBuilder() {
                     />
                   </label>
                   <label style={{ ...styles.miniLabel, marginTop: 10 }}>
-                    Estimated Arrival
+                    Offset (minutes from start)
                     <input
-                      type="time"
-                      value={pendingForm.estimated_arrival}
-                      onChange={(e) => setPendingForm({ ...pendingForm, estimated_arrival: e.target.value })}
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={pendingForm.offset_minutes}
+                      onChange={(e) => setPendingForm({ ...pendingForm, offset_minutes: e.target.value })}
+                      placeholder="0"
                       style={{ ...styles.miniInput, marginTop: 4 }}
                     />
                   </label>
+                  <div style={styles.etaHint}>
+                    {windowStart ? (
+                      <>
+                        Arrival: <strong>{pendingEtaPreview}</strong>
+                        <span style={{ color: COLORS.text.muted }}>
+                          {' '}({formatTime12h(windowStart)} + {pendingOffsetNum} min)
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ color: COLORS.text.muted }}>
+                        Set a start time on the schedule to see the arrival preview.
+                      </span>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                     <Button type="submit" size="sm" loading={busy} disabled={busy}>Save</Button>
                     <Button variant="ghost" size="sm" type="button" onClick={cancelPending} disabled={busy}>Cancel</Button>
@@ -490,6 +566,7 @@ export default function RouteBuilder() {
                     const pt = pointType(s);
                     const role = pt === 'start' ? 'Start' : pt === 'end' ? 'End' : null;
                     const chipColor = pt === 'start' ? '#22C55E' : pt === 'end' ? '#EF4444' : COLORS.primary;
+                    const derivedEta = formatTime12h(etaFromSchedule(windowStart, s.offset_minutes || 0));
                     return (
                       <li
                         key={s.sys_id}
@@ -513,14 +590,30 @@ export default function RouteBuilder() {
                               />
                             </label>
                             <label style={styles.miniLabel}>
-                              ETA
+                              Offset (minutes from start)
                               <input
-                                type="time"
-                                value={editForm.estimated_arrival}
-                                onChange={(e) => setEditForm({ ...editForm, estimated_arrival: e.target.value })}
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={editForm.offset_minutes}
+                                onChange={(e) => setEditForm({ ...editForm, offset_minutes: e.target.value })}
                                 style={styles.miniInput}
                               />
                             </label>
+                            <div style={styles.etaHint}>
+                              {windowStart ? (
+                                <>
+                                  Arrival: <strong>{editEtaPreview}</strong>
+                                  <span style={{ color: COLORS.text.muted }}>
+                                    {' '}({formatTime12h(windowStart)} + {editOffsetNum} min)
+                                  </span>
+                                </>
+                              ) : (
+                                <span style={{ color: COLORS.text.muted }}>
+                                  Set a start time on the schedule to see the arrival preview.
+                                </span>
+                              )}
+                            </div>
                             <label style={styles.miniLabel}>
                               Status
                               <select
@@ -546,7 +639,7 @@ export default function RouteBuilder() {
                                 {s.label || <em style={{ color: COLORS.text.muted }}>No label</em>}
                               </div>
                               <div style={{ fontSize: 12, color: COLORS.text.muted }}>
-                                {role ? `${role} · ` : ''}ETA {formatTime12h(s.estimated_arrival) || '—'} · {s.stop_status || 'Not Arrived'}
+                                {role ? `${role} · ` : ''}ETA {derivedEta || '—'} · +{s.offset_minutes || 0}m · {s.stop_status || 'Not Arrived'}
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
@@ -655,6 +748,26 @@ const styles = {
     border: `2px solid ${COLORS.primary}`,
     borderRadius: 10,
     background: COLORS.primaryLight,
+  },
+  etaHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  manageBox: {
+    padding: 12,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 10,
+    background: COLORS.bg.card,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  manageHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
   },
   mapCol: { minWidth: 0 },
   h4: { margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: COLORS.text.primary },

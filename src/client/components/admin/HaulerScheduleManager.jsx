@@ -13,7 +13,7 @@ function titleCase(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowe
 
 const EMPTY_FORM = { waste_type: '', day_of_week: '', time_window_start: '', time_window_end: '' };
 
-export default function HaulerScheduleManager({ hauler }) {
+export default function HaulerScheduleManager({ hauler, onChanged }) {
   const haulerId = hauler?.sys_id || '';
   const haulerName = hauler?.name || '';
   const haulerBarangayId = hauler?.barangay_id || '';
@@ -50,15 +50,8 @@ export default function HaulerScheduleManager({ hauler }) {
 
   const schedules = useMemo(() => {
     if (!haulerId) return [];
-    return allSchedules.filter((row) => {
-      if (!row) return false;
-      if (row.hauler_id === haulerId) return true;
-      if (row.hauler === haulerId) return true;
-      if (row.u_hauler === haulerId) return true;
-      if (haulerName && row.hauler === haulerName) return true;
-      return false;
-    });
-  }, [allSchedules, haulerId, haulerName]);
+    return allSchedules.filter((row) => row?.hauler_id === haulerId);
+  }, [allSchedules, haulerId]);
 
   function openNew() {
     setForm(EMPTY_FORM);
@@ -104,6 +97,7 @@ export default function HaulerScheduleManager({ hauler }) {
       }
       setShowForm(false);
       await reload();
+      onChanged?.();
     } catch (err) {
       setError(err?.message || 'Save failed.');
     } finally {
@@ -119,6 +113,7 @@ export default function HaulerScheduleManager({ hauler }) {
       setToast({ message: 'Schedule deleted.', type: 'success' });
       setConfirmDelete(null);
       await reload();
+      onChanged?.();
     } catch (err) {
       setToast({ message: err?.message || 'Delete failed.', type: 'error' });
       setConfirmDelete(null);

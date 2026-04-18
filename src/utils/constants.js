@@ -12,6 +12,29 @@ export const API = {
 export const IS_DEV_PROXY = typeof window !== 'undefined'
   && ['localhost', '[::1]', '127.0.0.1'].includes(window.location.hostname);
 
+// OAuth 2.0 + PKCE config for admin login. client_id is public by design for a
+// PKCE client — safe to ship in the bundle. The secret ServiceNow auto-generates
+// for the registry entry is NOT used here; it would only belong on a backend proxy.
+export const OAUTH = {
+  clientId: 'bdd141a3648c4f8cb8497350b05b8efa',
+  // MUST match the redirect URI registered on ServiceNow exactly. Using the
+  // site root avoids needing SPA history fallback on the static dev server —
+  // main.jsx forwards ?code=&state= into the hash callback route on any path.
+  redirectUri: 'http://localhost:3000/',
+  authorizeUrl: 'https://dev375738.service-now.com/oauth_auth.do',
+  // Relative path: the NowSDK dev server at :3000 proxies /oauth_token.do to the
+  // instance so the PKCE token fetch is same-origin. For prod (app deployed to
+  // ServiceNow) this also works — requests are already same-origin with the OAuth
+  // endpoint. Keep authorizeUrl absolute; that's a full-page nav, not a fetch.
+  tokenUrl: '/oauth_token.do',
+  // Refresh slightly before expiry so an in-flight request never sees a stale token.
+  refreshMarginMs: 60_000,
+};
+
+// OAuth verified end-to-end 2026-04-18 — Basic Auth dev fallback disabled.
+// loginBasic() remains in AuthContext for one release as a safety net; drop it next pass.
+export const DEV_USE_BASIC_AUTH = false;
+
 export const COLORS = {
   primary: '#16A34A',
   primaryDark: '#15803D',

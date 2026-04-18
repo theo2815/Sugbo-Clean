@@ -200,12 +200,13 @@ export async function getWasteItems(search, binType) {
   return { result: normalizeList(data.result) };
 }
 
-// Accepts { haulerId, barangayId } — both optional. Backend supports either
-// or both as filters; omit both to fetch all stops.
-export async function getRouteStops({ haulerId, barangayId } = {}) {
+// Accepts { haulerId, barangayId, scheduleId } — all optional. Backend supports
+// any combination as filters; omit all to fetch every stop.
+export async function getRouteStops({ haulerId, barangayId, scheduleId } = {}) {
   const params = new URLSearchParams();
   if (haulerId) params.set('hauler_id', haulerId);
   if (barangayId) params.set('barangay_id', barangayId);
+  if (scheduleId) params.set('schedule', scheduleId);
   const qs = params.toString();
   const path = qs ? `/route-stops?${qs}` : '/route-stops';
   const data = await request(path);
