@@ -457,6 +457,10 @@ declare global {
                         table: 'sys_security_acl'
                         id: 'e416c1b893500310153ffdc9dd03d6a7'
                     }
+                    e7134735931c0b10153ffdc9dd03d6de: {
+                        table: 'sys_script'
+                        id: 'e7134735931c0b10153ffdc9dd03d6de'
+                    }
                     e986c5f893500310153ffdc9dd03d6cf: {
                         table: 'sys_security_acl'
                         id: 'e986c5f893500310153ffdc9dd03d6cf'
@@ -692,6 +696,15 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_documentation'
+                        id: '17d95dab253b45459d42e3decdf0dc08'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_schedule'
+                            language: 'en'
+                        }
+                    },
+                    {
                         table: 'sys_ui_list_element'
                         id: '1953597493d00310153ffdc9dd03d60c'
                         key: {
@@ -771,6 +784,14 @@ declare global {
                                 }
                             }
                             element: 'u_time_window_start'
+                        }
+                    },
+                    {
+                        table: 'sys_index'
+                        id: '1efd9c7d8481488e8779b316ec396f8e'
+                        key: {
+                            logical_table_name: 'x_1986056_sugbocle_route_stop'
+                            col_name_string: 'u_schedule'
                         }
                     },
                     {
@@ -914,6 +935,14 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_dictionary'
+                        id: '3939afb49098440c93fa61fcad86c9f4'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_schedule'
+                        }
+                    },
+                    {
                         table: 'ua_table_licensing_config'
                         id: '3d3f108220414c1297d2da927e32c697'
                         key: {
@@ -1000,6 +1029,15 @@ declare global {
                         key: {
                             logical_table_name: 'x_1986056_sugbocle_hauler'
                             col_name_string: 'u_barangay'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: '4a6d573f55f7478ea3c0cf3402758c58'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_offsets_minutes'
+                            language: 'en'
                         }
                     },
                     {
@@ -1107,6 +1145,14 @@ declare global {
                                 }
                             }
                             element: 'u_name'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: '5d457c8ac4ae4bc19238c3641e71a620'
+                        key: {
+                            name: 'x_1986056_sugbocle_route_stop'
+                            element: 'u_offsets_minutes'
                         }
                     },
                     {

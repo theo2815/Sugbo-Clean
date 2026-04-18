@@ -1,4 +1,4 @@
-import { ChoiceColumn, FloatColumn, StringColumn, Table } from '@servicenow/sdk/core'
+import { ChoiceColumn, FloatColumn, IntegerColumn, ReferenceColumn, StringColumn, Table } from '@servicenow/sdk/core'
 
 export const x_1986056_sugbocle_route_stop = Table({
     actions: ['read', 'update', 'create'],
@@ -58,5 +58,27 @@ export const x_1986056_sugbocle_route_stop = Table({
             ],
             maxLength: 40,
         }),
+        u_offsets_minutes: IntegerColumn({
+            label: [
+                {
+                    label: 'Offsets (Minutes)',
+                },
+            ],
+        }),
+        u_schedule: ReferenceColumn({
+            label: [
+                {
+                    label: 'Schedule',
+                },
+            ],
+            referenceTable: 'x_1986056_sugbocle_schedule',
+        }),
     },
+    index: [
+        {
+            name: 'index',
+            unique: false,
+            element: 'u_schedule',
+        },
+    ],
 })
