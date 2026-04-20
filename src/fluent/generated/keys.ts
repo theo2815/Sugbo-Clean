@@ -660,6 +660,14 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_dictionary'
+                        id: '1089cf4f3d59499cbc53843f440e61fe'
+                        key: {
+                            name: 'x_1986056_sugbocle_reminder_subscription'
+                            element: 'u_last_sent_at'
+                        }
+                    },
+                    {
                         table: 'sys_ui_list_element'
                         id: '1153597493d00310153ffdc9dd03d60b'
                         key: {
@@ -934,6 +942,15 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_documentation'
+                        id: '3292a2021afe4153a91a8b70f76da84b'
+                        key: {
+                            name: 'x_1986056_sugbocle_reminder_subscription'
+                            element: 'u_unsubscribe_token'
+                            language: 'en'
+                        }
+                    },
+                    {
                         table: 'sys_dictionary'
                         id: '3891eb7ecb5b4838a4712db951bcf01b'
                         key: {
@@ -1195,6 +1212,14 @@ declare global {
                         key: {
                             name: 'x_1986056_sugbocle_waste_item'
                             element: 'NULL'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: '60f83862b8154ba3826590e99f7076f9'
+                        key: {
+                            name: 'x_1986056_sugbocle_reminder_subscription'
+                            element: 'u_unsubscribe_token'
                         }
                     },
                     {
@@ -2236,6 +2261,15 @@ declare global {
                         id: 'f2c258bab21a4ef9b3780bbfc0957ceb'
                         key: {
                             name: 'x_1986056_sugbocle_schedule'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: 'f39d8ad9d9584946b8f7b442e73a6d5c'
+                        key: {
+                            name: 'x_1986056_sugbocle_reminder_subscription'
+                            element: 'u_last_sent_at'
+                            language: 'en'
                         }
                     },
                     {

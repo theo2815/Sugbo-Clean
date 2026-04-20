@@ -250,5 +250,15 @@ RestApi({
             path: '/barangays',
             enforceAcl: [],
         },
+        {
+            $id: Now.ID['535ef39a93104f10153ffdc9dd03d619'],
+            name: 'Unsubscribe Reminder',
+            consumes: 'application/json,application/xml,text/xml',
+            script: Now.include('./sys_ws_operation_535ef39a93104f10153ffdc9dd03d619.js'),
+            produces: 'application/json,application/xml,text/xml',
+            path: '/reminders/unsubscribe',
+            enforceAcl: [],
+            authentication: false,
+        },
     ],
 })
