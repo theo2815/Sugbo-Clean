@@ -63,7 +63,7 @@ export default function Navbar({ isAdmin, onTogglePortal }) {
                 borderBottom: `4px solid ${COLORS.secondary}`,
                 position: 'sticky',
                 top: 0,
-                zIndex: 100,
+                zIndex: 1100,
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             }}>
                 <NavLink to="/" style={{ textDecoration: 'none' }}>
@@ -127,7 +127,7 @@ export default function Navbar({ isAdmin, onTogglePortal }) {
                         position: 'fixed',
                         inset: 0,
                         background: 'rgba(15,23,42,0.45)',
-                        zIndex: 200,
+                        zIndex: 1200,
                     }}
                 >
                     <aside

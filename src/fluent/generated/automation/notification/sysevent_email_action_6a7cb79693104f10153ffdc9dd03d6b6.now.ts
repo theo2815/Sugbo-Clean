@@ -23,8 +23,7 @@ EmailNotification({
 <p>\${mail_script:sugboclean_pickup_reminder_details}</p>
 <p>Please have your bins ready at the curb before the window starts.</p>
 <hr>
-<p style="color: #6b7280; font-size: 13px;">Don't want these reminders? <a href="https://dev375738.service-now.com/api/x_1
-  986056_sugbocle/sugboclean_api/reminders/unsubscribe?token=\${u_unsubscribe_token}">Unsubscribe here</a></p>
+<p style="color: #6b7280; font-size: 13px;">Don't want these reminders? <a href="https://dev375738.service-now.com/api/x_1986056_sugbocle/sugboclean_api/reminders/unsubscribe?token=\${u_unsubscribe_token}">Unsubscribe here</a></p>
 <p style="color: #6b7280; font-size: 13px;">&mdash; SugboClean &middot; Keeping Sugbo clean, one pickup at a time.</p>`,
         subject: 'Pickup reminder — ${u_barangay} today',
         includeAttachments: false,

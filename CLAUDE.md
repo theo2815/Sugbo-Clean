@@ -57,7 +57,7 @@ sugbo-clean/
 │   │   └── services/         # API / service classes (IncidentService.js — being replaced)
 │   ├── data/                 # In-memory stores & fixtures (reportStore, reports, status)
 │   ├── pages/                # Page-level components (introduced with routing)
-│   └── fluent/               # NowSDK-generated ServiceNow table/API definitions — DO NOT hand-edit
+│   └── fluent/               # NowSDK ServiceNow definitions (tables, REST, notifications, jobs) — editable
 ├── now.config.json           # NowSDK app config
 ├── now.dev.mjs / now.prebuild.mjs  # NowSDK build hooks
 └── package.json
@@ -69,7 +69,7 @@ sugbo-clean/
 - **`src/client/services/`** — API wrappers and service classes. All HTTP calls go through here. Never call `fetch` from a component.
 - **`src/data/`** — mock fixtures and in-memory pub/sub stores used while the real backend is stubbed.
 - **`src/pages/`** — page-level components wired to routes. Keep pages thin: compose components, don't inline business logic.
-- **`src/fluent/generated/`** — machine-generated. Never edit by hand.
+- **`src/fluent/generated/`** — NowSDK-authored definitions for ServiceNow records (tables, scripted REST, notifications, scheduled jobs, etc.). **Editable** — hand-edit when the feature genuinely requires a backend change, and prefer editing an existing file over creating a parallel one. Never rename sys_ids or `$id` values. Treat this folder as part of the product, not as throwaway output.
 
 ---
 
@@ -82,7 +82,7 @@ sugbo-clean/
 3. **Reuse existing code.** If a component, hook, or helper already solves the problem, import it. Do not duplicate logic.
 4. **Follow existing patterns.** Match the style of neighboring files (props shape, hook usage, CSS approach, error handling).
 5. **Stay inside the declared scope.** If the task is "build the ReportTracker", do not refactor unrelated files.
-6. **Ask before doing anything risky.** Deleting files, renaming folders, changing schemas, editing `.claude/` or `now.config.json`, altering `src/fluent/generated/` — pause and confirm.
+6. **Ask before doing anything risky.** Deleting files, renaming folders, editing `.claude/` or `now.config.json`, or changing a sys_id / `$id` inside `src/fluent/generated/` — pause and confirm. Routine Fluent edits (schema tweaks, REST handlers, notifications, scheduled jobs) don't need confirmation.
 7. **Report honestly.** If you couldn't test the UI, say so. If a step was skipped, say so. Never claim "done" for work that isn't verified.
 8. **Keep responses tight.** Terse updates, no filler, no trailing summaries unless asked.
 
@@ -297,7 +297,7 @@ Setup and environment details: `docs/RUNNING_THE_APP.md`.
 - [ ] ESLint is clean; no unused imports or dead code
 - [ ] I ran `npm run dev` and clicked through the feature (or stated I couldn't)
 - [ ] My change is scoped to the task; no drive-by refactors
-- [ ] I did not touch `src/fluent/generated/`, `.claude/`, or `now.config.json` without permission
+- [ ] I did not touch `.claude/` or `now.config.json` without permission, and no sys_ids / `$id` values in `src/fluent/generated/` were renamed
 
 ---
 

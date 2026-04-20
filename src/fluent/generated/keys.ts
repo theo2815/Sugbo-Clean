@@ -317,6 +317,10 @@ declare global {
                         table: 'sys_ws_operation'
                         id: '7bd31ab093d80310153ffdc9dd03d6c0'
                     }
+                    '7c2f91d893a04f10153ffdc9dd03d601': {
+                        table: 'sysauto_script'
+                        id: '7c2f91d893a04f10153ffdc9dd03d601'
+                    }
                     '7ca7067893580310153ffdc9dd03d6bc': {
                         table: 'sys_script'
                         id: '7ca7067893580310153ffdc9dd03d6bc'
@@ -1886,6 +1890,15 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_documentation'
+                        id: 'ac735491438d461e83b0379bfed642e4'
+                        key: {
+                            name: 'x_1986056_sugbocle_reminder_subscription'
+                            element: 'u_schedule'
+                            language: 'en'
+                        }
+                    },
+                    {
                         table: 'sys_ui_list_element'
                         id: 'ae405cbd9394c710153ffdc9dd03d69a'
                         key: {
@@ -1996,6 +2009,14 @@ declare global {
                         id: 'bcbfd59f0a0f484f8a61fd5a04dec4db'
                         key: {
                             endpoint: 'x_1986056_sugbocle_incident_manager.do'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: 'c2d057fa38424d4d8c630d49d9e508a6'
+                        key: {
+                            name: 'x_1986056_sugbocle_reminder_subscription'
+                            element: 'u_schedule'
                         }
                     },
                     {

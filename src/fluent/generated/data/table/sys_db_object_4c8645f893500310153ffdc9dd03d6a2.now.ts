@@ -1,4 +1,4 @@
-import { DateTimeColumn, StringColumn, Table } from '@servicenow/sdk/core'
+import { DateTimeColumn, ReferenceColumn, StringColumn, Table } from '@servicenow/sdk/core'
 
 export const x_1986056_sugbocle_reminder_subscription = Table({
     actions: ['read', 'update', 'create'],
@@ -12,6 +12,14 @@ export const x_1986056_sugbocle_reminder_subscription = Table({
     label: 'Reminder Subscription',
     name: 'x_1986056_sugbocle_reminder_subscription',
     schema: {
+        u_schedule: ReferenceColumn({
+            label: [
+                {
+                    label: 'Schedule',
+                },
+            ],
+            referenceTable: 'x_1986056_sugbocle_schedule',
+        }),
         u_last_sent_at: DateTimeColumn({
             label: [
                 {

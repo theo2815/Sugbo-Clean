@@ -214,9 +214,9 @@ export async function getRouteStops({ haulerId, barangayId, scheduleId } = {}) {
   return { result: normalizeList(data.result).sort((a, b) => (a.stop_order || 0) - (b.stop_order || 0)) };
 }
 
-export async function subscribeReminder({ email, barangay }) {
-  const data = await request('/reminders', { method: 'POST', body: { email, barangay } });
-  return { result: normalizeRecord(data.result) };
+export async function subscribeReminder({ email, schedules }) {
+  const data = await request('/reminders', { method: 'POST', body: { email, schedules } });
+  return { result: data.result };
 }
 
 // ============ ADMIN ENDPOINTS (14) ============
