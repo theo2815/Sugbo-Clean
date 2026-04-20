@@ -157,6 +157,10 @@ declare global {
                         table: 'sys_scope_privilege'
                         id: '2e304c6e93104f10153ffdc9dd03d6b2'
                     }
+                    '2e80713e93940310153ffdc9dd03d681': {
+                        table: 'sys_scope_privilege'
+                        id: '2e80713e93940310153ffdc9dd03d681'
+                    }
                     '33e54d7893500310153ffdc9dd03d634': {
                         table: 'sys_security_acl'
                         id: '33e54d7893500310153ffdc9dd03d634'
@@ -545,6 +549,10 @@ declare global {
                         table: 'sys_ui_element'
                         id: 'df5d427493980310153ffdc9dd03d612'
                     }
+                    e07c613693940310153ffdc9dd03d689: {
+                        table: 'sys_kmf_module_key_policy'
+                        id: 'e07c613693940310153ffdc9dd03d689'
+                    }
                     e08645f893500310153ffdc9dd03d6ec: {
                         table: 'sys_ui_section'
                         id: 'e08645f893500310153ffdc9dd03d6ec'
@@ -895,6 +903,24 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list_element'
+                        id: '1e79467e93580310153ffdc9dd03d6dd'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_unsubscribe_token'
+                        }
+                    },
+                    {
                         table: 'sys_index'
                         id: '1efd9c7d8481488e8779b316ec396f8e'
                         key: {
@@ -918,6 +944,7 @@ declare global {
                     {
                         table: 'sys_ui_list_element'
                         id: '2086c1f893500310153ffdc9dd03d640'
+                        deleted: true
                         key: {
                             list_id: {
                                 id: 'ec86c1f893500310153ffdc9dd03d63e'
@@ -943,6 +970,7 @@ declare global {
                     {
                         table: 'sys_ui_list_element'
                         id: '2886c1f893500310153ffdc9dd03d641'
+                        deleted: true
                         key: {
                             list_id: {
                                 id: 'ec86c1f893500310153ffdc9dd03d63e'
@@ -979,6 +1007,7 @@ declare global {
                     {
                         table: 'sys_ui_list_element'
                         id: '2c86c1f893500310153ffdc9dd03d640'
+                        deleted: true
                         key: {
                             list_id: {
                                 id: 'ec86c1f893500310153ffdc9dd03d63e'
@@ -1212,6 +1241,24 @@ declare global {
                     },
                     {
                         table: 'sys_ui_list_element'
+                        id: '5679467e93580310153ffdc9dd03d6cf'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_barangay'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
                         id: '578311b493d00310153ffdc9dd03d66c'
                         key: {
                             list_id: {
@@ -1244,6 +1291,24 @@ declare global {
                                 }
                             }
                             element: 'u_name'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: '5a79467e93580310153ffdc9dd03d6d0'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_email'
                         }
                     },
                     {
@@ -1690,6 +1755,24 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list_element'
+                        id: '9279467e93580310153ffdc9dd03d6de'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_last_sent_at'
+                        }
+                    },
+                    {
                         table: 'sys_db_object'
                         id: '93d41702cc5a41d4bba7b7bf9c376d1a'
                         key: {
@@ -1800,6 +1883,7 @@ declare global {
                     {
                         table: 'sys_ui_list_element'
                         id: 'a086c1f893500310153ffdc9dd03d641'
+                        deleted: true
                         key: {
                             list_id: {
                                 id: 'ec86c1f893500310153ffdc9dd03d63e'
@@ -1831,6 +1915,7 @@ declare global {
                     {
                         table: 'sys_ui_list_element'
                         id: 'a486c1f893500310153ffdc9dd03d640'
+                        deleted: true
                         key: {
                             list_id: {
                                 id: 'ec86c1f893500310153ffdc9dd03d63e'
@@ -2071,6 +2156,24 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_ui_list_element'
+                        id: 'd279467e93580310153ffdc9dd03d6d0'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_schedule'
+                        }
+                    },
+                    {
                         table: 'sys_dictionary'
                         id: 'd437f664977e4c2dad86061c4cb7fb1d'
                         key: {
@@ -2159,6 +2262,24 @@ declare global {
                                 }
                             }
                             element: 'u_areas_covered'
+                        }
+                    },
+                    {
+                        table: 'sys_ui_list_element'
+                        id: 'de79467e93580310153ffdc9dd03d6d0'
+                        key: {
+                            list_id: {
+                                id: 'ec86c1f893500310153ffdc9dd03d63e'
+                                key: {
+                                    name: 'x_1986056_sugbocle_reminder_subscription'
+                                    view: 'Default view'
+                                    sys_domain: 'global'
+                                    element: 'NULL'
+                                    relationship: 'NULL'
+                                    parent: 'NULL'
+                                }
+                            }
+                            element: 'u_active'
                         }
                     },
                     {
