@@ -125,12 +125,37 @@ body {
 
 .route-map-cursor-add .leaflet-container,
 .route-map-cursor-add .leaflet-interactive {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'><path d='M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z' fill='%2316A34A' stroke='white' stroke-width='2'/><text x='12' y='16' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-size='14' font-weight='700'>+</text></svg>") 12 32, crosshair;
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'><path d='M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z' fill='%232563EB' stroke='white' stroke-width='2'/><text x='12' y='16' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-size='14' font-weight='700'>+</text></svg>") 12 32, crosshair;
 }
 
 .route-map-cursor-end .leaflet-container,
 .route-map-cursor-end .leaflet-interactive {
   cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'><path d='M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z' fill='%23EF4444' stroke='white' stroke-width='2'/><text x='12' y='16' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-size='11' font-weight='700'>E</text></svg>") 12 32, crosshair;
+}
+
+/* ============ LIVE STATUS PULSE ============ */
+
+/* Halo behind the Current (yellow) pin in statusMode='live'. Inline background
+   color is set per-pin so the ring matches the pin's live color. */
+.route-map-pin-wrap { position: relative; }
+
+.route-map-pin-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.55;
+  animation: route-map-pulse 1.6s ease-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes route-map-pulse {
+  0%   { transform: translate(-50%, -50%) scale(1);   opacity: 0.55; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0;    }
 }
 
 /* ============ TOAST ============ */

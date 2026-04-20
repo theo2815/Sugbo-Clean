@@ -4,7 +4,7 @@ import {
   createRouteStop, updateRouteStop, deleteRouteStop,
 } from '../../../services/api';
 import { COLORS, STOP_STATUSES } from '../../../utils/constants';
-import { etaFromSchedule, formatTime12h } from '../../../utils/helpers';
+import { etaFromSchedule, formatTime12h, computeStopStatuses } from '../../../utils/helpers';
 import Button from '../shared/Button';
 import Select from '../shared/Select';
 import Loading from '../shared/Loading';
@@ -15,7 +15,7 @@ import HaulerScheduleManager from './HaulerScheduleManager';
 
 const MODES = [
   { key: 'start', label: 'Set Start', color: '#22C55E', help: 'Click the map to place the start of the route.' },
-  { key: 'add',   label: 'Add Stop',  color: COLORS.primary, help: 'Click the map to add a stop before the end.' },
+  { key: 'add',   label: 'Add Stop',  color: COLORS.secondary, help: 'Click the map to add a stop before the end.' },
   { key: 'end',   label: 'Set End',   color: '#EF4444', help: 'Click the map to place the end of the route.' },
 ];
 
@@ -43,12 +43,31 @@ function scheduleLabel(s) {
   return `${hauler} · ${waste} · ${day}${window ? ` ${window}` : ''}`;
 }
 
+// Next offset for a new Add/End stop — biased +5 min past the latest non-end
+// stop so admins get a sensible default without having to guess. Zero when
+// there are no existing stops yet (Start's offset is always 0 by definition).
+function nextOffset(stops) {
+  const nonEnd = stops.filter((s) => pointType(s) !== 'end');
+  if (nonEnd.length === 0) return 0;
+  const maxOffset = nonEnd.reduce((m, s) => Math.max(m, Number(s.offset_minutes) || 0), 0);
+  return maxOffset + 5;
+}
+
+function previousStop(stops) {
+  const nonEnd = stops.filter((s) => pointType(s) !== 'end');
+  if (nonEnd.length === 0) return null;
+  return nonEnd.reduce((a, b) => (
+    (Number(b.offset_minutes) || 0) > (Number(a.offset_minutes) || 0) ? b : a
+  ));
+}
+
 export default function RouteBuilder() {
   const [haulers, setHaulers] = useState([]);
   const [barangays, setBarangays] = useState([]);
   const [allSchedules, setAllSchedules] = useState([]);
   const [stops, setStops] = useState([]);
   const [scheduleId, setScheduleId] = useState('');
+  const [filterBarangayId, setFilterBarangayId] = useState('');
   const [manageHaulerId, setManageHaulerId] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -68,6 +87,12 @@ export default function RouteBuilder() {
 
   const [focusedStopId, setFocusedStopId] = useState(null);
   const rowRefs = useRef({});
+
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => { loadInitial(); }, []);
 
@@ -126,6 +151,21 @@ export default function RouteBuilder() {
     [allSchedules, scheduleId],
   );
 
+  // Narrow the schedule dropdown to a single barangay. Empty filter = all
+  // barangays. Re-aligns `scheduleId` if the current pick falls outside the
+  // filter so the dropdown never shows a phantom selection.
+  const filteredSchedules = useMemo(() => {
+    if (!filterBarangayId) return allSchedules;
+    return allSchedules.filter((s) => s.barangay_id === filterBarangayId);
+  }, [allSchedules, filterBarangayId]);
+
+  useEffect(() => {
+    if (!filterBarangayId) return;
+    if (!scheduleId) return;
+    if (filteredSchedules.some((s) => s.sys_id === scheduleId)) return;
+    setScheduleId(filteredSchedules[0]?.sys_id || '');
+  }, [filterBarangayId, filteredSchedules, scheduleId]);
+
   const hauler = useMemo(() => {
     if (!selectedSchedule?.hauler_id) return null;
     return haulers.find((h) => h.sys_id === selectedSchedule.hauler_id) || null;
@@ -168,14 +208,25 @@ export default function RouteBuilder() {
 
   // Annotate each stop with a derived `estimated_arrival` so the shared
   // RouteMap popup (which reads that field) keeps working without knowing
-  // about schedules.
+  // about schedules. Also overlay a live stop_status (Not Arrived / Current /
+  // Passed) driven by `now` so the map colors advance as time ticks. The
+  // pending temp stop stays 'Not Arrived' — it hasn't been committed yet.
   const visibleStops = useMemo(() => {
-    const merged = pendingStop ? [...stops, pendingStop] : stops;
-    return merged.map((s) => ({
+    const annotated = stops.map((s) => ({
       ...s,
       estimated_arrival: etaFromSchedule(windowStart, s.offset_minutes || 0),
     }));
-  }, [stops, pendingStop, windowStart]);
+    const statuses = computeStopStatuses(annotated, selectedSchedule, now);
+    const withStatus = annotated.map((s) => ({
+      ...s,
+      stop_status: statuses[s.sys_id] || 'Not Arrived',
+    }));
+    if (!pendingStop) return withStatus;
+    return [...withStatus, {
+      ...pendingStop,
+      estimated_arrival: etaFromSchedule(windowStart, pendingStop.offset_minutes || 0),
+    }];
+  }, [stops, pendingStop, windowStart, selectedSchedule, now]);
 
   // ---------- Map click ----------
 
@@ -199,6 +250,7 @@ export default function RouteBuilder() {
       setToast({ message: 'End already placed. Drag the existing End pin to move it, or delete it first.', type: 'info' });
       return;
     }
+    const seededOffset = mode === 'start' ? 0 : nextOffset(stops);
     setPendingStop({
       sys_id: `tmp-${Date.now()}`,
       __temp: true,
@@ -207,10 +259,10 @@ export default function RouteBuilder() {
       point_type: mode,
       stop_order: previewOrder(mode),
       label: '',
-      offset_minutes: 0,
+      offset_minutes: seededOffset,
       stop_status: 'Not Arrived',
     });
-    setPendingForm({ label: '', offset_minutes: '' });
+    setPendingForm({ label: '', offset_minutes: String(seededOffset) });
   }
 
   async function commitPending(e) {
@@ -373,7 +425,14 @@ export default function RouteBuilder() {
   if (loading) return <Loading message="Loading route builder..." />;
 
   const activeMode = MODES.find((m) => m.key === mode);
-  const sortedStops = [...stops].sort((a, b) => (a.stop_order || 0) - (b.stop_order || 0));
+  // Sidebar reads from `visibleStops` (minus the temp pending stop) so its
+  // status column stays in sync with the live-computed colors on the map.
+  // Reading from raw `stops` showed the DB's stale `stop_status` while the map
+  // showed the time-driven one — that inconsistency is the bug users hit.
+  const sortedStops = visibleStops
+    .filter((s) => !s.__temp)
+    .sort((a, b) => (a.stop_order || 0) - (b.stop_order || 0));
+  const prevStop = previousStop(stops);
 
   const pendingOffsetNum = Number(pendingForm.offset_minutes) || 0;
   const editOffsetNum = Number(editForm.offset_minutes) || 0;
@@ -407,16 +466,31 @@ export default function RouteBuilder() {
           : <p style={{ color: COLORS.text.muted, fontSize: 13, margin: 0 }}>Pick a hauler to view or create their schedules.</p>}
       </section>
 
-      {/* Schedule picker */}
+      {/* Schedule picker — filter by barangay first, then pick a schedule. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0, color: COLORS.text.primary }}>Schedules & Route</h3>
+        <div style={{ minWidth: 220 }}>
+          <Select
+            name="filterBarangay"
+            value={filterBarangayId}
+            onChange={(e) => setFilterBarangayId(e.target.value)}
+            options={barangays.map((b) => ({ value: b.sys_id, label: b.name }))}
+            placeholder="All barangays"
+          />
+        </div>
         <div style={{ minWidth: 320 }}>
           <Select
             name="schedule"
             value={scheduleId}
             onChange={(e) => setScheduleId(e.target.value)}
-            options={allSchedules.map((s) => ({ value: s.sys_id, label: scheduleLabel(s) }))}
-            placeholder={allSchedules.length === 0 ? '-- No schedules yet --' : '-- Select schedule --'}
+            options={filteredSchedules.map((s) => ({ value: s.sys_id, label: scheduleLabel(s) }))}
+            placeholder={
+              allSchedules.length === 0
+                ? '-- No schedules yet --'
+                : filteredSchedules.length === 0
+                  ? '-- No schedules in this barangay --'
+                  : '-- Select schedule --'
+            }
           />
         </div>
         {selectedSchedule && (
@@ -431,6 +505,10 @@ export default function RouteBuilder() {
       {allSchedules.length === 0 ? (
         <p style={{ color: COLORS.text.muted }}>
           No schedules exist yet. Use <strong>Manage Schedules</strong> above to create your first one.
+        </p>
+      ) : filterBarangayId && filteredSchedules.length === 0 ? (
+        <p style={{ color: COLORS.text.muted }}>
+          No schedules for this barangay yet. Pick another, or create one in <strong>Manage Schedules</strong>.
         </p>
       ) : !scheduleId ? (
         <p style={{ color: COLORS.text.muted }}>Pick a schedule to plan its route.</p>
@@ -451,18 +529,25 @@ export default function RouteBuilder() {
             <span style={{ fontSize: 13, color: COLORS.text.muted, fontWeight: 600 }}>Tool:</span>
             {MODES.map((m) => {
               const active = mode === m.key;
+              // Force a Start-first flow: until a Start pin exists, Add/End are
+              // inert. Prevents orphan stops with no anchor offset to measure
+              // against and matches the natural authoring sequence.
+              const needsStart = (m.key === 'add' || m.key === 'end') && !startStop;
+              const disabled = busy || !!pendingStop || needsStart;
               return (
                 <button
                   key={m.key}
                   type="button"
                   onClick={() => setMode(active ? null : m.key)}
-                  disabled={busy || !!pendingStop}
+                  disabled={disabled}
+                  title={needsStart ? 'Place the Start pin first.' : ''}
                   style={{
                     ...styles.toolBtn,
                     background: active ? m.color : COLORS.bg.card,
                     color: active ? '#fff' : COLORS.text.primary,
                     borderColor: active ? m.color : COLORS.border,
-                    opacity: pendingStop ? 0.5 : 1,
+                    opacity: disabled ? 0.5 : 1,
+                    cursor: disabled ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {m.label}
@@ -502,7 +587,7 @@ export default function RouteBuilder() {
                     <span style={{
                       ...styles.orderBadge,
                       background: pendingStop.point_type === 'start' ? '#22C55E'
-                        : pendingStop.point_type === 'end' ? '#EF4444' : COLORS.primary,
+                        : pendingStop.point_type === 'end' ? '#EF4444' : COLORS.secondary,
                     }}>
                       {pendingStop.point_type === 'start' ? 'S' : pendingStop.point_type === 'end' ? 'E' : pendingStop.stop_order}
                     </span>
@@ -522,32 +607,48 @@ export default function RouteBuilder() {
                       style={{ ...styles.miniInput, marginTop: 4 }}
                     />
                   </label>
-                  <label style={{ ...styles.miniLabel, marginTop: 10 }}>
-                    Offset (minutes from start)
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={pendingForm.offset_minutes}
-                      onChange={(e) => setPendingForm({ ...pendingForm, offset_minutes: e.target.value })}
-                      placeholder="0"
-                      style={{ ...styles.miniInput, marginTop: 4 }}
-                    />
-                  </label>
-                  <div style={styles.etaHint}>
-                    {windowStart ? (
-                      <>
-                        Arrival: <strong>{pendingEtaPreview}</strong>
-                        <span style={{ color: COLORS.text.muted }}>
-                          {' '}({formatTime12h(windowStart)} + {pendingOffsetNum} min)
-                        </span>
-                      </>
-                    ) : (
-                      <span style={{ color: COLORS.text.muted }}>
-                        Set a start time on the schedule to see the arrival preview.
-                      </span>
-                    )}
-                  </div>
+                  {pendingStop.point_type === 'start' ? (
+                    <div style={{ ...styles.etaHint, marginTop: 10 }}>
+                      Start pin arrival is fixed at the schedule's start time
+                      {windowStart ? ` (${formatTime12h(windowStart)})` : ''}.
+                    </div>
+                  ) : (
+                    <>
+                      <label style={{ ...styles.miniLabel, marginTop: 10 }}>
+                        Offset (minutes from start)
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={pendingForm.offset_minutes}
+                          onChange={(e) => setPendingForm({ ...pendingForm, offset_minutes: e.target.value })}
+                          placeholder="0"
+                          style={{ ...styles.miniInput, marginTop: 4 }}
+                        />
+                      </label>
+                      {prevStop && (
+                        <div style={{ fontSize: 12, color: COLORS.text.muted, marginTop: 6 }}>
+                          Previous stop: +{Number(prevStop.offset_minutes) || 0}m
+                          {' at '}
+                          <strong>{formatTime12h(etaFromSchedule(windowStart, prevStop.offset_minutes || 0))}</strong>
+                        </div>
+                      )}
+                      <div style={styles.etaHint}>
+                        {windowStart ? (
+                          <>
+                            Arrival: <strong>{pendingEtaPreview}</strong>
+                            <span style={{ color: COLORS.text.muted }}>
+                              {' '}({formatTime12h(windowStart)} + {pendingOffsetNum} min)
+                            </span>
+                          </>
+                        ) : (
+                          <span style={{ color: COLORS.text.muted }}>
+                            Set a start time on the schedule to see the arrival preview.
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
                   <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                     <Button type="submit" size="sm" loading={busy} disabled={busy}>Save</Button>
                     <Button variant="ghost" size="sm" type="button" onClick={cancelPending} disabled={busy}>Cancel</Button>
@@ -565,7 +666,7 @@ export default function RouteBuilder() {
                   {sortedStops.map((s, i) => {
                     const pt = pointType(s);
                     const role = pt === 'start' ? 'Start' : pt === 'end' ? 'End' : null;
-                    const chipColor = pt === 'start' ? '#22C55E' : pt === 'end' ? '#EF4444' : COLORS.primary;
+                    const chipColor = pt === 'start' ? '#22C55E' : pt === 'end' ? '#EF4444' : COLORS.secondary;
                     const derivedEta = formatTime12h(etaFromSchedule(windowStart, s.offset_minutes || 0));
                     return (
                       <li
@@ -616,13 +717,16 @@ export default function RouteBuilder() {
                             </div>
                             <label style={styles.miniLabel}>
                               Status
-                              <select
-                                value={editForm.stop_status}
-                                onChange={(e) => setEditForm({ ...editForm, stop_status: e.target.value })}
-                                style={styles.miniInput}
-                              >
-                                {STOP_STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
-                              </select>
+                              <div style={{ marginTop: 4 }}>
+                                <Select
+                                  name="stop_status"
+                                  value={editForm.stop_status}
+                                  onChange={(e) => setEditForm({ ...editForm, stop_status: e.target.value })}
+                                  options={STOP_STATUSES.map((st) => ({ value: st, label: st }))}
+                                  placeholder="Status"
+                                  size="sm"
+                                />
+                              </div>
                             </label>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <Button type="submit" size="sm" loading={busy} disabled={busy}>Save</Button>
@@ -669,6 +773,7 @@ export default function RouteBuilder() {
                 center={mapCenter}
                 zoom={mapZoom}
                 height={560}
+                statusMode="live"
               />
             </div>
           </div>

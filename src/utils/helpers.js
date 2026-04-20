@@ -64,3 +64,113 @@ export function formatTime12h(val) {
   return `${h12}:${m} ${period}`;
 }
 
+function hhmmToMinutes(val) {
+  const hhmm = fromGlideTime(val);
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  return h * 60 + m;
+}
+
+// Sunday=0 … Saturday=6 — matches JS Date.getDay() and Intl's "weekday: long".
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// ServiceNow choice fields store the raw value (often lowercase: "monday"), while
+// Intl's weekday: 'long' emits Title Case ("Monday"). Normalize both sides so a
+// schedule row and `manilaNowParts().weekday` can be compared without drift.
+function dayNameToIndex(name) {
+  if (!name) return -1;
+  const needle = String(name).trim().toLowerCase();
+  return DAY_NAMES.findIndex((d) => d.toLowerCase() === needle);
+}
+
+// Current day-of-week + minutes-of-day in Asia/Manila (UTC+8, no DST).
+// Evaluated via Intl so it's correct regardless of the viewer's browser TZ —
+// a resident testing abroad still sees the LGU's local clock.
+function manilaNowParts(now) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    weekday: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(now);
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  const weekday = get('weekday');
+  // Intl's 2-digit hour can return "24" for midnight in some locales; normalize.
+  let hour = Number(get('hour'));
+  if (!Number.isFinite(hour) || hour === 24) hour = 0;
+  const minute = Number(get('minute')) || 0;
+  return {
+    dayIndex: dayNameToIndex(weekday),
+    minutesOfDay: hour * 60 + minute,
+  };
+}
+
+// Classify each stop relative to `now` using its offset from the schedule's
+// start time. Returns { [sys_id]: 'Not Arrived' | 'Current' | 'Passed' }.
+//
+// Rules (evaluated in Asia/Manila time):
+// - Wrong day of week → every stop is Not Arrived (grey). A Monday schedule
+//   stays grey all of Sunday even if admins built it in advance.
+// - Correct day, before the start time → every stop is Not Arrived.
+// - During the window → Current is the stop with the largest offset still ≤
+//   minutes elapsed since start; earlier offsets → Passed; later → Not Arrived.
+// - After the window ends → every stop is Passed.
+// - Overnight wrap (end < start): the early-morning portion on the day AFTER
+//   `day_of_week` still counts as live until the window closes, so a route
+//   crossing midnight doesn't snap back to grey.
+export function computeStopStatuses(stops, schedule, now = new Date()) {
+  const allNotArrived = Object.fromEntries((stops || []).map((s) => [s.sys_id, 'Not Arrived']));
+  if (!schedule || !Array.isArray(stops) || stops.length === 0) return allNotArrived;
+
+  const startMin = hhmmToMinutes(schedule.time_window_start);
+  if (startMin == null) return allNotArrived;
+
+  const scheduleDayIdx = dayNameToIndex(schedule.day_of_week);
+  if (scheduleDayIdx < 0) return allNotArrived;
+
+  const endMin = hhmmToMinutes(schedule.time_window_end);
+  const wrapsPastMidnight = endMin != null && endMin < startMin;
+  const windowMinutes = endMin != null
+    ? (((endMin - startMin) % 1440) + 1440) % 1440 || 1440
+    : 360;
+
+  const { dayIndex: todayIdx, minutesOfDay: nowMin } = manilaNowParts(now);
+
+  let elapsed;
+  if (todayIdx === scheduleDayIdx) {
+    const rawDelta = nowMin - startMin;
+    if (rawDelta < 0) return allNotArrived;
+    elapsed = rawDelta;
+  } else if (wrapsPastMidnight && todayIdx === (scheduleDayIdx + 1) % 7) {
+    elapsed = (1440 - startMin) + nowMin;
+  } else {
+    return allNotArrived;
+  }
+
+  if (elapsed > windowMinutes) {
+    return Object.fromEntries(stops.map((s) => [s.sys_id, 'Passed']));
+  }
+
+  const sorted = [...stops]
+    .sort((a, b) => (Number(a.offset_minutes) || 0) - (Number(b.offset_minutes) || 0));
+
+  let currentSysId = null;
+  for (const s of sorted) {
+    const offset = Number(s.offset_minutes) || 0;
+    if (offset <= elapsed) currentSysId = s.sys_id;
+    else break;
+  }
+
+  const result = {};
+  for (const s of stops) {
+    const offset = Number(s.offset_minutes) || 0;
+    if (s.sys_id === currentSysId) result[s.sys_id] = 'Current';
+    else if (offset <= elapsed) result[s.sys_id] = 'Passed';
+    else result[s.sys_id] = 'Not Arrived';
+  }
+  return result;
+}
+

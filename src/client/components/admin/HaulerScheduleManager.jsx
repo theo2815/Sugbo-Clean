@@ -13,6 +13,56 @@ function titleCase(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowe
 
 const EMPTY_FORM = { waste_type: '', day_of_week: '', time_window_start: '', time_window_end: '' };
 
+// 30-min preset slots for the quick-pick dropdown. Manual typing in the native
+// <input type="time"> still works alongside this — either control updates the
+// same form state, so selecting a preset syncs both, and typing a non-preset
+// time just clears the dropdown selection without clobbering the input.
+const TIME_PRESETS = (() => {
+  const out = [];
+  for (let h = 0; h < 24; h += 1) {
+    for (let m = 0; m < 60; m += 30) {
+      const hh = String(h).padStart(2, '0');
+      const mm = String(m).padStart(2, '0');
+      const val = `${hh}:${mm}`;
+      out.push({ value: val, label: formatTime12h(val) });
+    }
+  }
+  return out;
+})();
+
+// Lexicographic compare works because both sides are zero-padded 24h "HH:MM".
+function isOvernight(start, end) {
+  if (!start || !end) return false;
+  return end < start;
+}
+
+function TimeField({ label, value, onChange, required }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={styles.miniLabel}>
+        {label}{required ? ' *' : ''}
+        <input
+          type="time"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          style={{ ...styles.miniInput, marginTop: 6 }}
+        />
+        <div style={{ marginTop: 6 }}>
+          <Select
+            name={`${label}-preset`}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            options={TIME_PRESETS}
+            placeholder="Quick pick…"
+            size="sm"
+          />
+        </div>
+      </label>
+    </div>
+  );
+}
+
 export default function HaulerScheduleManager({ hauler, onChanged }) {
   const haulerId = hauler?.sys_id || '';
   const haulerName = hauler?.name || '';
@@ -76,6 +126,11 @@ export default function HaulerScheduleManager({ hauler, onChanged }) {
     e.preventDefault();
     if (!haulerBarangayId) {
       setError('This hauler has no assigned barangay. Assign one in the Hauler page first.');
+      return;
+    }
+    if (form.time_window_start && form.time_window_end
+        && form.time_window_start === form.time_window_end) {
+      setError('Start time and end time must differ.');
       return;
     }
     setSubmitting(true);
@@ -160,23 +215,25 @@ export default function HaulerScheduleManager({ hauler, onChanged }) {
               <Select label="Day" name="day_of_week" value={form.day_of_week}
                 onChange={(e) => setForm({ ...form, day_of_week: e.target.value })}
                 options={DAYS_OF_WEEK.map((d) => ({ value: d, label: d }))} required />
-              <div style={{ marginBottom: 16 }}>
-                <label style={styles.miniLabel}>
-                  Start Time
-                  <input type="time" value={form.time_window_start}
-                    onChange={(e) => setForm({ ...form, time_window_start: e.target.value })}
-                    required style={{ ...styles.miniInput, marginTop: 6 }} />
-                </label>
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={styles.miniLabel}>
-                  End Time
-                  <input type="time" value={form.time_window_end}
-                    onChange={(e) => setForm({ ...form, time_window_end: e.target.value })}
-                    required style={{ ...styles.miniInput, marginTop: 6 }} />
-                </label>
-              </div>
+              <TimeField
+                label="Start Time"
+                value={form.time_window_start}
+                onChange={(v) => setForm({ ...form, time_window_start: v })}
+                required
+              />
+              <TimeField
+                label="End Time"
+                value={form.time_window_end}
+                onChange={(v) => setForm({ ...form, time_window_end: v })}
+                required
+              />
             </div>
+            {isOvernight(form.time_window_start, form.time_window_end) && (
+              <div role="note" style={styles.overnightNote}>
+                Overnight schedule — ends next day
+                {form.day_of_week ? ` (${form.day_of_week} → next morning)` : ''}.
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
               <Button type="submit" size="sm" loading={submitting} disabled={submitting}>
                 {editingId ? 'Update' : 'Create'}
@@ -203,7 +260,14 @@ export default function HaulerScheduleManager({ hauler, onChanged }) {
               <tr key={item.sys_id}>
                 <td style={tableStyles.td}>{item.waste_type}</td>
                 <td style={tableStyles.td}>{item.day_of_week}</td>
-                <td style={tableStyles.td}>{formatTime12h(item.time_window_start)} – {formatTime12h(item.time_window_end)}</td>
+                <td style={tableStyles.td}>
+                  {formatTime12h(item.time_window_start)} – {formatTime12h(item.time_window_end)}
+                  {isOvernight(fromGlideTime(item.time_window_start), fromGlideTime(item.time_window_end)) && (
+                    <span style={{ marginLeft: 6, color: COLORS.text.muted, fontSize: 12 }}>
+                      (next day)
+                    </span>
+                  )}
+                </td>
                 <td style={tableStyles.td}>
                   <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
                   <Button variant="ghost" size="sm"
@@ -246,6 +310,15 @@ const styles = {
   alert: {
     padding: '10px 14px', background: '#FEF2F2', border: `1px solid ${COLORS.error}`,
     borderRadius: 8, color: COLORS.error, fontSize: 13, marginBottom: 12,
+  },
+  overnightNote: {
+    padding: '8px 12px',
+    background: '#EFF6FF',
+    border: `1px solid ${COLORS.primary}33`,
+    borderRadius: 8,
+    color: COLORS.primaryDark || COLORS.primary,
+    fontSize: 12,
+    marginBottom: 12,
   },
   miniLabel: { display: 'flex', flexDirection: 'column', fontSize: 12, color: COLORS.text.secondary, fontWeight: 500 },
   miniInput: {

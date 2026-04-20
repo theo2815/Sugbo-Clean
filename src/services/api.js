@@ -170,9 +170,10 @@ export async function getHaulerByName(name) {
 }
 
 // barangayId optional — omit to fetch all (used by RouteEditor admin).
+// Backend scripted REST reads `barangay_id` from queryParams — don't rename.
 export async function getSchedules(barangayId) {
   const path = barangayId
-    ? `/schedules?barangay=${encodeURIComponent(barangayId)}`
+    ? `/schedules?barangay_id=${encodeURIComponent(barangayId)}`
     : '/schedules';
   const data = await request(path);
   return { result: normalizeList(data.result) };

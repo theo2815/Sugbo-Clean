@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Phone, Truck, CalendarDays, Clock, Navigation } from 'lucide-react';
 import { getBarangays, getBarangayBundle } from '../../services/api';
 import { COLORS } from '../../utils/constants';
-import { formatTime12h, etaFromSchedule } from '../../utils/helpers';
+import { formatTime12h, etaFromSchedule, computeStopStatuses } from '../../utils/helpers';
 import Select from './shared/Select';
 import Loading from './shared/Loading';
 import Card from './shared/Card';
@@ -43,6 +43,13 @@ export default function ScheduleChecker() {
     const [routeStops, setRouteStops] = useState([]);
     const [bundleError, setBundleError] = useState(null);
     const [retryKey, setRetryKey] = useState(0);
+    const [now, setNow] = useState(() => new Date());
+
+    // 1-minute tick drives live stop-status recomputation without any refetch.
+    useEffect(() => {
+        const id = setInterval(() => setNow(new Date()), 60_000);
+        return () => clearInterval(id);
+    }, []);
 
     useEffect(() => {
         async function loadBarangays() {
@@ -71,7 +78,13 @@ export default function ScheduleChecker() {
             try {
                 const bundle = await getBarangayBundle(selectedBarangay);
                 if (cancelled) return;
-                setSchedules(bundle.schedules);
+                // Belt-and-suspenders: if the API contract ever drifts and the
+                // server-side barangay filter stops working, don't show other
+                // barangays' schedules to a resident.
+                const scopedSchedules = (bundle.schedules || []).filter(
+                    (s) => !s.barangay_id || s.barangay_id === selectedBarangay,
+                );
+                setSchedules(scopedSchedules);
                 setHauler(bundle.hauler);
                 setRouteStops(bundle.routeStops);
             } catch (err) {
@@ -102,9 +115,11 @@ export default function ScheduleChecker() {
 
     // Filter stops to the selected schedule only, then derive each stop's ETA
     // from that schedule's start time + stop offset (single source of truth).
+    // Overlay a live status (Not Arrived / Current / Passed) driven by `now`
+    // so the map can color-advance through the stop list as time ticks.
     const annotatedStops = useMemo(() => {
         if (!selectedSchedule) return [];
-        return routeStops
+        const filtered = routeStops
             .filter((s) => s.schedule_id === selectedSchedule.sys_id)
             .map((s) => ({
                 ...s,
@@ -113,7 +128,9 @@ export default function ScheduleChecker() {
                     s.offset_minutes || 0,
                 ),
             }));
-    }, [routeStops, selectedSchedule]);
+        const statuses = computeStopStatuses(filtered, selectedSchedule, now);
+        return filtered.map((s) => ({ ...s, stop_status: statuses[s.sys_id] || 'Not Arrived' }));
+    }, [routeStops, selectedSchedule, now]);
 
     if (loading) return <Loading message="Loading barangays..." />;
 
@@ -307,6 +324,7 @@ export default function ScheduleChecker() {
                         center={residentLatLng ?? CEBU_CENTER}
                         zoom={residentLatLng ? 15 : 13}
                         height={340}
+                        statusMode="live"
                     />
 
                     <p style={{

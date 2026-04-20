@@ -9,21 +9,34 @@ export const CEBU_CENTER = [10.3157, 123.8854];
 const ROLE_COLOR = {
   start: '#22C55E',
   end: '#EF4444',
-  stop: COLORS.primary,
+  stop: COLORS.secondary,
 };
 
-function pinIcon({ label, color }) {
+const LIVE_COLOR = {
+  'Not Arrived': '#9CA3AF',
+  'Current': '#F59E0B',
+  'Passed': '#16A34A',
+};
+
+function pinIcon({ label, color, pulse = false }) {
   const size = 30;
+  const pulseHtml = pulse
+    ? `<span class="route-map-pin-pulse" style="background:${color};"></span>`
+    : '';
   const html = `
-    <div style="
-      width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;
-      background:${color};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.25);
-      transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;
-    ">
-      <span style="
-        transform:rotate(45deg);color:#fff;font-weight:700;font-size:12px;
-        font-family:system-ui,-apple-system,sans-serif;
-      ">${label ?? ''}</span>
+    <div class="route-map-pin-wrap" style="width:${size}px;height:${size}px;">
+      ${pulseHtml}
+      <div style="
+        position:relative;z-index:1;
+        width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;
+        background:${color};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.25);
+        transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;
+      ">
+        <span style="
+          transform:rotate(45deg);color:#fff;font-weight:700;font-size:12px;
+          font-family:system-ui,-apple-system,sans-serif;
+        ">${label ?? ''}</span>
+      </div>
     </div>`;
   return L.divIcon({
     html,
@@ -135,6 +148,7 @@ export default function RouteMap({
   draggableStops = false,
   onStopDragEnd,
   cursorMode = null,
+  statusMode = 'point_type',
 }) {
   const cursorClass = cursorMode ? `route-map-cursor-${cursorMode}` : '';
 
@@ -191,13 +205,15 @@ export default function RouteMap({
           const isStart = s.sys_id === startSysId;
           const isEnd = s.sys_id === endSysId && startSysId !== endSysId;
           const role = isStart ? 'start' : isEnd ? 'end' : 'stop';
-          const color = ROLE_COLOR[role];
+          const liveColor = statusMode === 'live' ? LIVE_COLOR[s.stop_status] : null;
+          const color = liveColor || ROLE_COLOR[role];
           const label = isStart ? 'S' : isEnd ? 'E' : String(s.stop_order ?? '');
+          const pulse = statusMode === 'live' && s.stop_status === 'Current';
           return (
             <Marker
               key={s.sys_id}
               position={[lat, lng]}
-              icon={pinIcon({ label, color })}
+              icon={pinIcon({ label, color, pulse })}
               draggable={draggableStops}
               eventHandlers={{
                 click: () => onStopClick && onStopClick(s),
