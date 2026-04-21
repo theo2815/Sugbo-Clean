@@ -617,6 +617,10 @@ declare global {
                         table: 'sys_module'
                         id: '290623ef023e41f699901c04660afb07'
                     }
+                    'x_1986056_sugbocle/header-logo.png': {
+                        table: 'db_image'
+                        id: '51a6aa96d9914d929307460fece89a35'
+                    }
                 }
                 composite: [
                     {

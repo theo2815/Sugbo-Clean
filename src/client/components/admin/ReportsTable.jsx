@@ -26,7 +26,7 @@ const NEXT_STATUS = {
 
 export default function ReportsTable({ reports, onReportsChange }) {
   const [updatingId, setUpdatingId] = useState(null);
-  const [detail, setDetail] = useState(null);
+  const [detailId, setDetailId] = useState(null);
   const [statusError, setStatusError] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -39,6 +39,12 @@ export default function ReportsTable({ reports, onReportsChange }) {
     if (sa !== sb) return sa - sb;
     return new Date(b.missed_date) - new Date(a.missed_date);
   }), [reports]);
+
+  // Derive the open drawer's report from the live list so status updates re-render it.
+  const detail = useMemo(
+    () => (detailId ? reports.find((r) => r.sys_id === detailId) || null : null),
+    [detailId, reports]
+  );
 
   // Drop any selected ids that are no longer visible (filter change or post-reload).
   useEffect(() => {
@@ -223,7 +229,7 @@ export default function ReportsTable({ reports, onReportsChange }) {
                     <td style={{ ...styles.td, ...styles.code }}>
                       <button
                         type="button"
-                        onClick={() => setDetail(report)}
+                        onClick={() => setDetailId(report.sys_id)}
                         style={styles.codeBtn}
                         aria-label={`Open details for ${report.report_code}`}
                       >
@@ -281,7 +287,12 @@ export default function ReportsTable({ reports, onReportsChange }) {
         </div>
       )}
 
-      <ReportDetailDrawer report={detail} onClose={() => setDetail(null)} />
+      <ReportDetailDrawer
+        report={detail}
+        onClose={() => setDetailId(null)}
+        onStatusChange={(newStatus) => detail && setStatus(detail, newStatus)}
+        isUpdatingStatus={detail && updatingId === detail.sys_id}
+      />
 
       <ConfirmDialog
         open={confirmOpen}

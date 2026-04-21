@@ -1,9 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { X, Paperclip, Download } from 'lucide-react';
+import { X, Paperclip, Download, Play, CheckCircle2 } from 'lucide-react';
 import { getReportAttachments } from '../../../services/api';
-import { COLORS } from '../../../utils/constants';
+import { COLORS, STATUS } from '../../../utils/constants';
 import { formatDate } from '../../../utils/helpers';
 import StatusPill from '../shared/StatusPill';
+import Dropdown from '../shared/Dropdown';
+import ImageViewer from '../shared/ImageViewer';
+
+const STATUS_ORDER = [STATUS.PENDING, STATUS.IN_PROGRESS, STATUS.RESOLVED];
+
+function allowedStatusOptions(current) {
+  const idx = STATUS_ORDER.indexOf(current);
+  const from = idx === -1 ? 0 : idx;
+  return STATUS_ORDER.slice(from).map((s) => ({ value: s, label: s }));
+}
+
+const NEXT_STATUS = {
+  [STATUS.PENDING]: { label: 'Start', next: STATUS.IN_PROGRESS, icon: Play, color: COLORS.status.inProgress },
+  [STATUS.IN_PROGRESS]: { label: 'Resolve', next: STATUS.RESOLVED, icon: CheckCircle2, color: COLORS.status.resolved },
+};
 
 function formatBytes(n) {
   if (!n) return '';
@@ -12,10 +27,11 @@ function formatBytes(n) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function ReportDetailDrawer({ report, onClose }) {
+export default function ReportDetailDrawer({ report, onClose, onStatusChange, isUpdatingStatus }) {
   const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [viewerIndex, setViewerIndex] = useState(null);
 
   useEffect(() => {
     if (!report) return;
@@ -36,67 +52,124 @@ export default function ReportDetailDrawer({ report, onClose }) {
     return () => { cancelled = true; };
   }, [report]);
 
+  // ESC closes the drawer — but not while ImageViewer is open (it owns ESC then).
   useEffect(() => {
+    if (!report || viewerIndex !== null) return;
     function onKey(e) { if (e.key === 'Escape') onClose?.(); }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [report, viewerIndex, onClose]);
 
   if (!report) return null;
 
+  const imageAttachments = attachments
+    .filter((a) => (a.content_type || '').startsWith('image/'))
+    .map((a) => ({ url: a.download_url, name: a.file_name, sys_id: a.sys_id }));
+
+  const next = NEXT_STATUS[report.status];
+  const isResolved = report.status === STATUS.RESOLVED;
+
   return (
-    <div role="dialog" aria-modal="true" aria-label="Report detail" style={styles.backdrop} onClick={onClose}>
-      <aside style={styles.panel} onClick={(e) => e.stopPropagation()}>
-        <header style={styles.header}>
-          <div>
-            <div style={styles.code}>{report.report_code}</div>
-            <div style={{ marginTop: 4 }}><StatusPill status={report.status} /></div>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} style={styles.closeBtn}>
-            <X size={18} />
-          </button>
-        </header>
+    <>
+      <div role="dialog" aria-modal="true" aria-label="Report detail" style={styles.backdrop} onClick={onClose}>
+        <aside style={styles.panel} onClick={(e) => e.stopPropagation()}>
+          <header style={styles.header}>
+            <div>
+              <div style={styles.code}>{report.report_code}</div>
+              <div style={{ marginTop: 4 }}><StatusPill status={report.status} /></div>
+            </div>
+            <button type="button" aria-label="Close" onClick={onClose} style={styles.closeBtn}>
+              <X size={18} />
+            </button>
+          </header>
 
-        <dl style={styles.dl}>
-          <Row label="Barangay" value={report.barangay} />
-          <Row label="Waste Type" value={report.waste_type} />
-          <Row label="Missed Date" value={formatDate(report.missed_date)} />
-          <Row label="Email" value={report.email || '—'} wide breakAll />
-          <Row label="Description" value={report.description || '—'} wide preserveLines />
-        </dl>
+          <dl style={styles.dl}>
+            <Row label="Barangay" value={report.barangay} />
+            <Row label="Waste Type" value={report.waste_type} />
+            <Row label="Missed Date" value={formatDate(report.missed_date)} />
+            <Row label="Submitted" value={formatDate(report.created_on)} />
+            <Row label="Email" value={report.email || '—'} wide breakAll />
+            <Row label="Description" value={report.description || '—'} wide preserveLines />
+          </dl>
 
-        <section>
-          <h4 style={styles.sectionTitle}><Paperclip size={14} /> Attachments</h4>
-          {loading && <p style={styles.muted}>Loading attachments…</p>}
-          {error && <p role="alert" style={{ ...styles.muted, color: COLORS.error }}>{error}</p>}
-          {!loading && !error && attachments.length === 0 && (
-            <p style={styles.muted}>No photos attached to this report.</p>
-          )}
-          {attachments.map((a) => {
-            const isImage = (a.content_type || '').startsWith('image/');
-            return (
-              <div key={a.sys_id} style={styles.attachment}>
-                {isImage && (
-                  <img
-                    src={a.download_url}
-                    alt={a.file_name}
-                    style={styles.thumb}
-                    loading="lazy"
-                  />
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={styles.fileName}>{a.file_name}</div>
-                  <div style={styles.muted}>{formatBytes(a.size_bytes)} · {a.content_type}</div>
+          <section style={styles.actionsSection}>
+            <h4 style={styles.sectionTitle}>Update Status</h4>
+            <div style={styles.actionsRow}>
+              {next && (
+                <button
+                  type="button"
+                  onClick={() => onStatusChange?.(next.next)}
+                  disabled={isUpdatingStatus}
+                  style={{
+                    ...styles.quickBtn,
+                    borderColor: next.color,
+                    color: next.color,
+                    opacity: isUpdatingStatus ? 0.6 : 1,
+                  }}
+                  aria-label={`${next.label} ${report.report_code}`}
+                >
+                  <next.icon size={13} />
+                  {next.label}
+                </button>
+              )}
+              <Dropdown
+                options={allowedStatusOptions(report.status)}
+                value={report.status}
+                onChange={(v) => onStatusChange?.(v)}
+                disabled={isUpdatingStatus || isResolved}
+                size="sm"
+                fullWidth={false}
+              />
+            </div>
+            {isResolved && (
+              <p style={styles.muted}>This report is resolved. Status is forward-only and cannot be changed.</p>
+            )}
+          </section>
+
+          <section>
+            <h4 style={styles.sectionTitle}><Paperclip size={14} /> Attachments</h4>
+            {loading && <p style={styles.muted}>Loading attachments…</p>}
+            {error && <p role="alert" style={{ ...styles.muted, color: COLORS.error }}>{error}</p>}
+            {!loading && !error && attachments.length === 0 && (
+              <p style={styles.muted}>No photos attached to this report.</p>
+            )}
+            {attachments.map((a) => {
+              const isImage = (a.content_type || '').startsWith('image/');
+              const imageIdx = isImage ? imageAttachments.findIndex((img) => img.sys_id === a.sys_id) : -1;
+              return (
+                <div key={a.sys_id} style={styles.attachment}>
+                  {isImage && (
+                    <button
+                      type="button"
+                      onClick={() => setViewerIndex(imageIdx)}
+                      aria-label={`Preview ${a.file_name}`}
+                      style={styles.thumbBtn}
+                    >
+                      <img src={a.download_url} alt={a.file_name} style={styles.thumb} loading="lazy" />
+                    </button>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={styles.fileName}>{a.file_name}</div>
+                    <div style={styles.muted}>{formatBytes(a.size_bytes)} · {a.content_type}</div>
+                  </div>
+                  <a href={a.download_url} target="_blank" rel="noreferrer" style={styles.dlBtn}>
+                    <Download size={13} /> {isImage ? 'Download' : 'Open'}
+                  </a>
                 </div>
-                <a href={a.download_url} target="_blank" rel="noreferrer" style={styles.dlBtn}>
-                  <Download size={13} /> Open
-                </a>
-              </div>
-            );
-          })}
-        </section>
-      </aside>
-    </div>
+              );
+            })}
+          </section>
+        </aside>
+      </div>
+
+      {viewerIndex !== null && (
+        <ImageViewer
+          images={imageAttachments}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -148,13 +221,31 @@ const styles = {
     margin: '0 0 10px', fontSize: 13, color: COLORS.text.secondary,
     textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700,
   },
+  actionsSection: {
+    margin: '0 0 22px', padding: '14px 14px 16px',
+    border: `1px solid ${COLORS.border}`, borderRadius: 10,
+    background: COLORS.bg.page,
+  },
+  actionsRow: {
+    display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+  },
+  quickBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: '5px 10px', border: '1px solid', background: '#fff',
+    borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    transition: 'background 0.12s ease',
+  },
   muted: { margin: '4px 0', fontSize: 13, color: COLORS.text.muted },
   attachment: {
     display: 'flex', alignItems: 'center', gap: 10,
     padding: 10, border: `1px solid ${COLORS.border}`, borderRadius: 10,
     marginBottom: 8, background: COLORS.bg.page,
   },
-  thumb: { width: 56, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0 },
+  thumbBtn: {
+    padding: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+    borderRadius: 8, lineHeight: 0,
+  },
+  thumb: { width: 56, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0, display: 'block' },
   fileName: { fontSize: 13, fontWeight: 600, color: COLORS.text.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   dlBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 4,

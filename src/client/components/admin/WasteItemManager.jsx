@@ -8,6 +8,8 @@ import TextArea from '../shared/TextArea';
 import Loading from '../shared/Loading';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import Toast from '../shared/Toast';
+import Card from '../shared/Card';
+import BinColorTag from '../shared/BinColorTag';
 
 // Normalize "biodegradable" → "Biodegradable" to match BIN_TYPES constants.
 function normalizeBinType(raw) {
@@ -62,7 +64,7 @@ export default function WasteItemManager() {
   useEffect(() => { load(); }, []);
 
   // After the form mounts (or re-targets a different item), bring it into view
-  // so editing a row at the bottom of the table doesn't feel like a no-op.
+  // so adding/editing from a card lower on the page doesn't feel like a no-op.
   useEffect(() => {
     if (!showForm) return;
     const node = formRef.current;
@@ -78,8 +80,13 @@ export default function WasteItemManager() {
     setLoading(false);
   }
 
-  function openNew() {
-    setForm(EMPTY_FORM);
+  function openNew(binType) {
+    const next = { ...EMPTY_FORM };
+    if (binType) {
+      next.bin_type = binType;
+      next.bin_color = BIN_COLOR_MAP[binType] || '';
+    }
+    setForm(next);
     setEditing(null);
     setError('');
     setShowForm(true);
@@ -151,86 +158,165 @@ export default function WasteItemManager() {
 
   if (loading) return <Loading message="Loading waste items..." />;
 
+  const grouped = items.reduce((acc, item) => {
+    const key = normalizeBinType(item.bin_type) || 'Uncategorized';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  // The form is rendered inside the card matching form.bin_type. If the admin
+  // is editing an item whose bin_type isn't in BIN_TYPES, fall back to the
+  // Uncategorized card so the form is still visible and reachable.
+  const formHostsUncategorized =
+    showForm && !!form.bin_type && !BIN_TYPES.includes(form.bin_type);
+
+  function renderForm() {
+    return (
+      <div ref={formRef} style={styles.formBlock}>
+        <form onSubmit={handleSubmit}>
+          {error && (
+            <div role="alert" aria-live="assertive" style={styles.formError}>{error}</div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' }}>
+            <Input label="Name" name="name" maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <Select
+              name="bin_type"
+              label="Bin Type"
+              value={form.bin_type}
+              onChange={handleBinTypeChange}
+              options={BIN_TYPE_OPTIONS}
+              required
+            />
+          </div>
+          <TextArea
+            label="Disposal Instructions"
+            name="disposal_instructions"
+            maxLength={500}
+            value={form.disposal_instructions}
+            onChange={(e) => setForm({ ...form, disposal_instructions: e.target.value })}
+            placeholder="How should this item be disposed?"
+            required
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button type="submit" size="sm" loading={submitting} disabled={submitting}>{editing ? 'Update' : 'Create'}</Button>
+            <Button variant="ghost" size="sm" type="button" onClick={closeForm} disabled={submitting}>Cancel</Button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h3 style={{ margin: 0, color: COLORS.text.primary }}>Waste Items ({items.length})</h3>
-        <Button size="sm" onClick={openNew}>+ New Item</Button>
       </div>
 
-      {showForm && (
-        <div ref={formRef} style={{ padding: 16, marginBottom: 16, border: `1px solid ${COLORS.border}`, borderRadius: 10, background: COLORS.bg.muted, scrollMarginTop: 16 }}>
-          <form onSubmit={handleSubmit}>
-            {error && (
-              <div role="alert" aria-live="assertive" style={{
-                padding: '10px 14px', background: '#FEF2F2', border: `1px solid ${COLORS.error}`,
-                borderRadius: 8, color: COLORS.error, fontSize: 13, marginBottom: 12,
-              }}>{error}</div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' }}>
-              <Input label="Name" name="name" maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-              <Select
-                name="bin_type"
-                label="Bin Type"
-                value={form.bin_type}
-                onChange={handleBinTypeChange}
-                options={BIN_TYPE_OPTIONS}
-                required
-              />
-            </div>
-            <TextArea
-              label="Disposal Instructions"
-              name="disposal_instructions"
-              maxLength={500}
-              value={form.disposal_instructions}
-              onChange={(e) => setForm({ ...form, disposal_instructions: e.target.value })}
-              placeholder="How should this item be disposed?"
-              required
-            />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button type="submit" size="sm" loading={submitting} disabled={submitting}>{editing ? 'Update' : 'Create'}</Button>
-              <Button variant="ghost" size="sm" type="button" onClick={closeForm} disabled={submitting}>Cancel</Button>
-            </div>
-          </form>
-        </div>
-      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {BIN_TYPES.map((binType) => {
+          const binItems = grouped[binType] || [];
+          const showFormHere = showForm && form.bin_type === binType;
+          return (
+            <Card key={binType} accentColor={COLORS.bin[binType]}>
+              <div style={styles.cardHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <BinColorTag binType={binType} />
+                  <h4 style={styles.cardTitle}>{binType} Waste</h4>
+                  <span style={styles.countPill}>
+                    {binItems.length} {binItems.length === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
+                {!showFormHere && (
+                  <Button size="sm" onClick={() => openNew(binType)}>+ Add</Button>
+                )}
+              </div>
 
-      {items.length === 0 ? (
-        <p style={{ textAlign: 'center', color: COLORS.text.muted, padding: 30 }}>No waste items yet. Click "New" to add one.</p>
-      ) : (
-        <table style={tableStyles.table}>
-          <thead>
-            <tr>{['Name', 'Bin Type', 'Instructions', 'Actions'].map((h) => <th key={h} style={tableStyles.th}>{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {items.map((item) => {
-              const isEditingRow = editing === item.sys_id;
-              const rowBg = isEditingRow ? COLORS.primaryLight : 'transparent';
-              return (
-                <tr key={item.sys_id} style={{ background: rowBg, transition: 'background 150ms ease' }}>
-                  <td style={{ ...tableStyles.td, fontWeight: isEditingRow ? 600 : 400, color: isEditingRow ? COLORS.text.primary : tableStyles.td.color }}>{item.name}</td>
-                  <td style={tableStyles.td}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      <BinSwatch binType={item.bin_type} />
-                      {normalizeBinType(item.bin_type)}
-                    </span>
-                  </td>
-                  <td style={{ ...tableStyles.td, maxWidth: 360, lineHeight: 1.45, overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{item.disposal_instructions}</td>
-                  <td style={tableStyles.td}>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setConfirm({ sysId: item.sys_id, name: item.name })}
-                      style={{ color: COLORS.error }}
-                    >Delete</Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+              {showFormHere && renderForm()}
+
+              {binItems.length === 0 ? (
+                <p style={styles.emptyHint}>
+                  No items in this category yet — click <strong>+ Add</strong> to create one.
+                </p>
+              ) : (
+                <ul style={styles.grid}>
+                  {binItems.map((item) => {
+                    const isEditingTile = editing === item.sys_id;
+                    return (
+                      <li
+                        key={item.sys_id}
+                        style={{
+                          ...styles.tile,
+                          background: isEditingTile ? COLORS.primaryLight : COLORS.bg.muted,
+                          borderColor: isEditingTile ? COLORS.primary : COLORS.border,
+                        }}
+                      >
+                        <div style={{
+                          ...styles.tileName,
+                          color: isEditingTile ? COLORS.primaryDark : COLORS.text.primary,
+                          fontWeight: isEditingTile ? 700 : 600,
+                        }}>
+                          {item.name}
+                        </div>
+                        <div style={styles.tileInstructions}>
+                          {item.disposal_instructions}
+                        </div>
+                        <div style={styles.tileActions}>
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirm({ sysId: item.sys_id, name: item.name })}
+                            style={{ color: COLORS.error }}
+                          >Delete</Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Card>
+          );
+        })}
+
+        {(grouped.Uncategorized?.length > 0 || formHostsUncategorized) && (
+          <Card>
+            <div style={styles.cardHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <h4 style={styles.cardTitle}>Uncategorized</h4>
+                <span style={styles.countPill}>
+                  {(grouped.Uncategorized?.length || 0)} {(grouped.Uncategorized?.length || 0) === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+            </div>
+
+            {formHostsUncategorized && renderForm()}
+
+            <p style={styles.emptyHint}>
+              These items have an unrecognized bin type. Edit each one to assign a category.
+            </p>
+            {grouped.Uncategorized?.length > 0 && (
+              <ul style={styles.grid}>
+                {grouped.Uncategorized.map((item) => (
+                  <li key={item.sys_id} style={{ ...styles.tile, background: COLORS.bg.muted, borderColor: COLORS.border }}>
+                    <div style={{ ...styles.tileName, color: COLORS.text.primary, fontWeight: 600 }}>{item.name}</div>
+                    <div style={styles.tileInstructions}>{item.disposal_instructions}</div>
+                    <div style={styles.tileActions}>
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirm({ sysId: item.sys_id, name: item.name })}
+                        style={{ color: COLORS.error }}
+                      >Delete</Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
+      </div>
 
       <ConfirmDialog
         open={!!confirm}
@@ -246,8 +332,87 @@ export default function WasteItemManager() {
   );
 }
 
-const tableStyles = {
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 14 },
-  th: { textAlign: 'left', padding: '10px 8px', borderBottom: `2px solid ${COLORS.border}`, color: COLORS.text.muted, fontSize: 12, fontWeight: 600 },
-  td: { padding: '10px 8px', borderBottom: `1px solid ${COLORS.bg.muted}`, color: COLORS.text.secondary },
+const styles = {
+  formBlock: {
+    padding: 16,
+    marginBottom: 16,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 10,
+    background: COLORS.bg.page,
+    scrollMarginTop: 16,
+  },
+  formError: {
+    padding: '10px 14px',
+    background: '#FEF2F2',
+    border: `1px solid ${COLORS.error}`,
+    borderRadius: 8,
+    color: COLORS.error,
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottom: `1px solid ${COLORS.border}`,
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  cardTitle: {
+    margin: 0,
+    fontSize: 16,
+    fontWeight: 600,
+    color: COLORS.text.primary,
+  },
+  countPill: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+    fontWeight: 600,
+    background: COLORS.bg.muted,
+    padding: '4px 10px',
+    borderRadius: 12,
+  },
+  emptyHint: {
+    margin: 0,
+    fontSize: 13,
+    color: COLORS.text.muted,
+    fontStyle: 'italic',
+  },
+  grid: {
+    listStyle: 'none',
+    padding: 0,
+    margin: 0,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+    gap: 12,
+  },
+  tile: {
+    padding: 16,
+    borderRadius: 8,
+    border: '1px solid',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    boxSizing: 'border-box',
+    transition: 'background 150ms ease, border-color 150ms ease',
+  },
+  tileName: {
+    fontSize: 15,
+  },
+  tileInstructions: {
+    color: COLORS.text.secondary,
+    fontSize: 13,
+    lineHeight: 1.5,
+    overflowWrap: 'anywhere',
+    flex: 1,
+  },
+  tileActions: {
+    display: 'flex',
+    gap: 4,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTop: `1px solid ${COLORS.border}`,
+  },
 };
