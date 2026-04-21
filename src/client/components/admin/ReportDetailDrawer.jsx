@@ -61,8 +61,8 @@ export default function ReportDetailDrawer({ report, onClose }) {
           <Row label="Barangay" value={report.barangay} />
           <Row label="Waste Type" value={report.waste_type} />
           <Row label="Missed Date" value={formatDate(report.missed_date)} />
-          <Row label="Email" value={report.email || '—'} />
-          <Row label="Description" value={report.description || '—'} wide />
+          <Row label="Email" value={report.email || '—'} wide breakAll />
+          <Row label="Description" value={report.description || '—'} wide preserveLines />
         </dl>
 
         <section>
@@ -100,11 +100,15 @@ export default function ReportDetailDrawer({ report, onClose }) {
   );
 }
 
-function Row({ label, value, wide }) {
+function Row({ label, value, wide, preserveLines, breakAll }) {
   return (
     <div style={{ gridColumn: wide ? '1 / -1' : 'auto' }}>
       <dt style={styles.dt}>{label}</dt>
-      <dd style={styles.dd}>{value}</dd>
+      <dd style={{
+        ...styles.dd,
+        ...(preserveLines ? { whiteSpace: 'pre-wrap' } : null),
+        ...(breakAll ? { overflowWrap: 'anywhere' } : null),
+      }}>{value}</dd>
     </div>
   );
 }

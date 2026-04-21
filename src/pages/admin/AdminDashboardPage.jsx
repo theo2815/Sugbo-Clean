@@ -81,7 +81,7 @@ export default function AdminDashboardPage() {
     <div style={styles.page}>
       <MetricsGrid reports={reports} />
       <FilterBar onFilterChange={setFilters} resultCount={filtered.length} />
-      <ReportsTable reports={filtered} onStatusChange={loadReports} />
+      <ReportsTable reports={filtered} onReportsChange={loadReports} />
     </div>
   );
 }

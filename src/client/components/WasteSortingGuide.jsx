@@ -228,6 +228,7 @@ export default function WasteSortingGuide() {
                                             fontSize: 13,
                                             marginTop: 2,
                                             lineHeight: 1.45,
+                                            overflowWrap: 'anywhere',
                                         }}>
                                             {item.disposal_instructions}
                                         </div>

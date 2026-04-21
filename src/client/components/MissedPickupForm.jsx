@@ -57,6 +57,10 @@ export default function MissedPickupForm() {
 
     async function handleSubmit(e) {
         e.preventDefault();
+        if (!description.trim()) {
+            setSubmitError('Please describe what happened so the sanitation office has context.');
+            return;
+        }
         setSubmitting(true);
         setSubmitError('');
         setPhotoWarning('');
@@ -66,7 +70,7 @@ export default function MissedPickupForm() {
                 missed_date: missedDate,
                 waste_type: wasteType,
                 email,
-                description,
+                description: description.trim(),
             });
             if (photo && result.sys_id) {
                 setUploadPct(0);
@@ -92,7 +96,7 @@ export default function MissedPickupForm() {
         setTimeout(() => setCopied(false), 2000);
     }
 
-    const canSubmit = barangay && wasteType && missedDate && !submitting;
+    const canSubmit = barangay && wasteType && missedDate && description.trim() && !submitting;
 
     if (submittedCode) {
         return (
@@ -210,7 +214,19 @@ export default function MissedPickupForm() {
                     />
                 </FieldGroup>
 
-                <FieldGroup title="Contact (optional)">
+                <FieldGroup title="What happened">
+                    <TextArea
+                        label="Describe the issue"
+                        name="description"
+                        placeholder="E.g. The garbage truck didn't come, and the collection point on Mabini St. is overflowing."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        maxLength={500}
+                        required
+                    />
+                </FieldGroup>
+
+                <FieldGroup title="Contact & Photo (optional)">
                     <Input
                         label="Email"
                         name="email"
@@ -218,14 +234,6 @@ export default function MissedPickupForm() {
                         placeholder="your@email.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <TextArea
-                        label="Additional Details"
-                        name="description"
-                        placeholder="Describe the location or any specific issue..."
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        maxLength={500}
                     />
                     <FileUpload
                         label="Photo (optional)"

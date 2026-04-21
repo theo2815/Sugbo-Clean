@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getWasteItems, createWasteItem, updateWasteItem, deleteWasteItem } from '../../../services/api';
 import { COLORS, BIN_TYPES, BIN_COLOR_MAP } from '../../../utils/constants';
 import Button from '../shared/Button';
@@ -16,6 +16,30 @@ function normalizeBinType(raw) {
   return BIN_TYPES.find((t) => t.toLowerCase() === lower) || raw;
 }
 
+function BinSwatch({ binType, size = 10 }) {
+  const key = normalizeBinType(binType);
+  const hex = COLORS.bin[key] || COLORS.text.muted;
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: hex,
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+const BIN_TYPE_OPTIONS = BIN_TYPES.map((t) => ({
+  value: t,
+  label: t,
+  icon: <BinSwatch binType={t} />,
+}));
+
 const EMPTY_FORM = { name: '', bin_type: '', bin_color: '', disposal_instructions: '' };
 
 export default function WasteItemManager() {
@@ -28,8 +52,24 @@ export default function WasteItemManager() {
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null);
   const [toast, setToast] = useState(null);
+  const formRef = useRef(null);
+
+  function closeForm() {
+    setShowForm(false);
+    setEditing(null);
+  }
 
   useEffect(() => { load(); }, []);
+
+  // After the form mounts (or re-targets a different item), bring it into view
+  // so editing a row at the bottom of the table doesn't feel like a no-op.
+  useEffect(() => {
+    if (!showForm) return;
+    const node = formRef.current;
+    if (node?.scrollIntoView) {
+      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [showForm, editing]);
 
   async function load() {
     setLoading(true);
@@ -65,17 +105,26 @@ export default function WasteItemManager() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // Select's `required` is a label-only affordance — the hidden input can't
+    // trigger native validation — so guard bin_type explicitly before submit.
+    const name = form.name.trim();
+    const instructions = form.disposal_instructions.trim();
+    if (!name || !form.bin_type || !instructions) {
+      setError('Please fill in the name, bin type, and disposal instructions.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
+      const payload = { ...form, name, disposal_instructions: instructions };
       if (editing) {
-        await updateWasteItem(editing, form);
+        await updateWasteItem(editing, payload);
         setToast({ message: 'Waste item updated successfully.', type: 'success' });
       } else {
-        await createWasteItem(form);
+        await createWasteItem(payload);
         setToast({ message: 'Waste item created successfully.', type: 'success' });
       }
-      setShowForm(false);
+      closeForm();
       await load();
     } catch (err) {
       setError(err?.message || 'Save failed.');
@@ -110,7 +159,7 @@ export default function WasteItemManager() {
       </div>
 
       {showForm && (
-        <div style={{ padding: 16, marginBottom: 16, border: `1px solid ${COLORS.border}`, borderRadius: 10, background: COLORS.bg.muted }}>
+        <div ref={formRef} style={{ padding: 16, marginBottom: 16, border: `1px solid ${COLORS.border}`, borderRadius: 10, background: COLORS.bg.muted, scrollMarginTop: 16 }}>
           <form onSubmit={handleSubmit}>
             {error && (
               <div role="alert" aria-live="assertive" style={{
@@ -125,7 +174,7 @@ export default function WasteItemManager() {
                 label="Bin Type"
                 value={form.bin_type}
                 onChange={handleBinTypeChange}
-                options={BIN_TYPES.map((t) => ({ value: t, label: t }))}
+                options={BIN_TYPE_OPTIONS}
                 required
               />
             </div>
@@ -140,7 +189,7 @@ export default function WasteItemManager() {
             />
             <div style={{ display: 'flex', gap: 8 }}>
               <Button type="submit" size="sm" loading={submitting} disabled={submitting}>{editing ? 'Update' : 'Create'}</Button>
-              <Button variant="ghost" size="sm" type="button" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</Button>
+              <Button variant="ghost" size="sm" type="button" onClick={closeForm} disabled={submitting}>Cancel</Button>
             </div>
           </form>
         </div>
@@ -151,31 +200,34 @@ export default function WasteItemManager() {
       ) : (
         <table style={tableStyles.table}>
           <thead>
-            <tr>{['Name', 'Bin Type', 'Color', 'Instructions', 'Actions'].map((h) => <th key={h} style={tableStyles.th}>{h}</th>)}</tr>
+            <tr>{['Name', 'Bin Type', 'Instructions', 'Actions'].map((h) => <th key={h} style={tableStyles.th}>{h}</th>)}</tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.sys_id}>
-                <td style={tableStyles.td}>{item.name}</td>
-                <td style={tableStyles.td}>{item.bin_type}</td>
-                <td style={tableStyles.td}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS.bin[item.bin_type] }} />
-                    {item.bin_color}
-                  </span>
-                </td>
-                <td style={{ ...tableStyles.td, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.disposal_instructions}</td>
-                <td style={tableStyles.td}>
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setConfirm({ sysId: item.sys_id, name: item.name })}
-                    style={{ color: COLORS.error }}
-                  >Delete</Button>
-                </td>
-              </tr>
-            ))}
+            {items.map((item) => {
+              const isEditingRow = editing === item.sys_id;
+              const rowBg = isEditingRow ? COLORS.primaryLight : 'transparent';
+              return (
+                <tr key={item.sys_id} style={{ background: rowBg, transition: 'background 150ms ease' }}>
+                  <td style={{ ...tableStyles.td, fontWeight: isEditingRow ? 600 : 400, color: isEditingRow ? COLORS.text.primary : tableStyles.td.color }}>{item.name}</td>
+                  <td style={tableStyles.td}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <BinSwatch binType={item.bin_type} />
+                      {normalizeBinType(item.bin_type)}
+                    </span>
+                  </td>
+                  <td style={{ ...tableStyles.td, maxWidth: 360, lineHeight: 1.45, overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{item.disposal_instructions}</td>
+                  <td style={tableStyles.td}>
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConfirm({ sysId: item.sys_id, name: item.name })}
+                      style={{ color: COLORS.error }}
+                    >Delete</Button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

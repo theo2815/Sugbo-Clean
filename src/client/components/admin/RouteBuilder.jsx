@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   getHaulers, getBarangays, getSchedules, getRouteStops,
   createRouteStop, updateRouteStop, deleteRouteStop,
@@ -66,7 +67,16 @@ export default function RouteBuilder() {
   const [barangays, setBarangays] = useState([]);
   const [allSchedules, setAllSchedules] = useState([]);
   const [stops, setStops] = useState([]);
-  const [scheduleId, setScheduleId] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scheduleId = searchParams.get('schedule') || '';
+  const setScheduleId = useCallback((newId) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newId) next.set('schedule', newId);
+      else next.delete('schedule');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const [filterBarangayId, setFilterBarangayId] = useState('');
   const [manageHaulerId, setManageHaulerId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -117,7 +127,8 @@ export default function RouteBuilder() {
       setHaulers(haulRes.result);
       setBarangays(brgyRes.result);
       setAllSchedules(schedRes.result);
-      if (!scheduleId && schedRes.result.length > 0) {
+      const valid = scheduleId && schedRes.result.some((s) => s.sys_id === scheduleId);
+      if (!valid && schedRes.result.length > 0) {
         setScheduleId(schedRes.result[0].sys_id);
       }
     } catch (err) {
@@ -140,7 +151,8 @@ export default function RouteBuilder() {
     try {
       const res = await getSchedules();
       setAllSchedules(res.result);
-      if (!scheduleId && res.result.length > 0) setScheduleId(res.result[0].sys_id);
+      const valid = scheduleId && res.result.some((s) => s.sys_id === scheduleId);
+      if (!valid && res.result.length > 0) setScheduleId(res.result[0].sys_id);
     } catch (err) {
       setToast({ message: err?.message || 'Failed to refresh schedules.', type: 'error' });
     }

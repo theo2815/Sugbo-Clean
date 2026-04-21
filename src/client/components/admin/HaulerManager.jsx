@@ -54,6 +54,10 @@ export default function HaulerManager() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!form.barangay) {
+      setError('Assigned Barangay is required.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {

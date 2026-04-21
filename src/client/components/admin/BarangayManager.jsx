@@ -18,6 +18,16 @@ function fmtCoord(v) {
   return Number.isFinite(n) ? n.toFixed(6) : '';
 }
 
+function coordError(value, kind) {
+  if (value === '' || value == null) return '';
+  const n = Number(value);
+  const label = kind === 'lat' ? 'Latitude' : 'Longitude';
+  if (!Number.isFinite(n)) return `${label} must be a number.`;
+  const max = kind === 'lat' ? 90 : 180;
+  if (n < -max || n > max) return `${label} must be between -${max} and ${max}.`;
+  return '';
+}
+
 export default function BarangayManager() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +83,12 @@ export default function BarangayManager() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const latErr = coordError(form.latitude, 'lat');
+    const lngErr = coordError(form.longitude, 'lng');
+    if (latErr || lngErr) {
+      setError('Fix the coordinate errors before saving.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     const payload = {
@@ -118,7 +134,12 @@ export default function BarangayManager() {
 
   if (loading) return <Loading message="Loading barangays..." />;
 
-  const editableMarker = (form.latitude !== '' && form.longitude !== '')
+  const latErr = coordError(form.latitude, 'lat');
+  const lngErr = coordError(form.longitude, 'lng');
+  const coordsUsable =
+    form.latitude !== '' && form.longitude !== '' && !latErr && !lngErr;
+
+  const editableMarker = coordsUsable
     ? { latitude: form.latitude, longitude: form.longitude }
     : null;
 
@@ -151,10 +172,12 @@ export default function BarangayManager() {
                 required />
               <Input label="Latitude" name="latitude" value={form.latitude}
                 onChange={(e) => setForm({ ...form, latitude: e.target.value })}
-                placeholder="e.g. 10.3157 — or click the map" inputMode="decimal" />
+                placeholder="e.g. 10.3157 — or click the map" inputMode="decimal"
+                error={latErr} />
               <Input label="Longitude" name="longitude" value={form.longitude}
                 onChange={(e) => setForm({ ...form, longitude: e.target.value })}
-                placeholder="e.g. 123.8854 — or click the map" inputMode="decimal" />
+                placeholder="e.g. 123.8854 — or click the map" inputMode="decimal"
+                error={lngErr} />
             </div>
 
             <div style={{ marginBottom: 16 }}>

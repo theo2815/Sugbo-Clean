@@ -212,6 +212,16 @@ RestApi({
             enforceAcl: [],
         },
         {
+            $id: Now.ID['f51bcef493d80310153ffdc9dd03d6fa'],
+            name: 'Delete Report',
+            consumes: 'application/json,application/xml,text/xml',
+            method: 'DELETE',
+            script: Now.include('./sys_ws_operation_f51bcef493d80310153ffdc9dd03d6fa.js'),
+            produces: 'application/json,application/xml,text/xml',
+            path: '/reports/{sys_id}',
+            enforceAcl: [],
+        },
+        {
             $id: Now.ID['ed549af093d80310153ffdc9dd03d61e'],
             name: 'Get Route Stops',
             consumes: 'application/json,application/xml,text/xml',

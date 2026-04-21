@@ -231,6 +231,10 @@ export async function updateReportStatus(sysId, status) {
   return { result: normalizeRecord(data.result) };
 }
 
+export async function deleteReport(sysId) {
+  return request(`/reports/${sysId}`, { method: 'DELETE' });
+}
+
 // Photo upload goes to the standard ServiceNow attachment endpoint (different base path).
 // Uses XHR so we can expose progress events to the caller.
 export function uploadReportPhoto(reportSysId, file, onProgress) {

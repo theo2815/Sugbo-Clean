@@ -605,6 +605,10 @@ declare global {
                         table: 'sys_security_acl'
                         id: 'f46641f893500310153ffdc9dd03d6f8'
                     }
+                    f51bcef493d80310153ffdc9dd03d6fa: {
+                        table: 'sys_ws_operation'
+                        id: 'f51bcef493d80310153ffdc9dd03d6fa'
+                    }
                     fd9c0af093980310153ffdc9dd03d67f: {
                         table: 'sys_ui_element'
                         id: 'fd9c0af093980310153ffdc9dd03d67f'
