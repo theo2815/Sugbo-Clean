@@ -39,7 +39,8 @@
           '<meta name="viewport" content="width=device-width,initial-scale=1">' +
           '<style>body{font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:60px auto;padding:24px;text-align:center;color:#1f2937}h1{color:#16A34A;margin-bottom:8px}p{color:#4b5563}.muted{color:#9ca3af;font-size:13px;margin-top:32px}</style>' +
           '</head><body><h1>You\'ve been unsubscribed</h1>' +
-          '<p>You will no longer receive pickup reminder emails from SugboClean.</p>' +
+          '<p>You will no longer receive reminders for this pickup schedule.</p>' +
+          '<p style="color:#6b7280;font-size:14px;margin-top:12px">If you subscribed to other pickup days, those reminders are still active.</p>' +
           '<p class="muted">Keeping Sugbo clean, one pickup at a time.</p>' +
           '</body></html>';
       response.getStreamWriter().writeString(ok);

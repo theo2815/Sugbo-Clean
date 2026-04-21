@@ -83,6 +83,10 @@ export default function BarangayManager() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!form.name.trim() || !form.zone) {
+      setError('Please fill in the name and zone.');
+      return;
+    }
     const latErr = coordError(form.latitude, 'lat');
     const lngErr = coordError(form.longitude, 'lng');
     if (latErr || lngErr) {
@@ -92,7 +96,7 @@ export default function BarangayManager() {
     setSubmitting(true);
     setError('');
     const payload = {
-      name: form.name,
+      name: form.name.trim(),
       zone: form.zone,
     };
     if (form.latitude !== '' && form.longitude !== '') {

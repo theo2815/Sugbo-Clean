@@ -13,6 +13,7 @@ export default function Card({ children, accentColor, onClick, style }) {
         borderTop: accentColor ? `6px solid ${accentColor}` : undefined,
         cursor: onClick ? 'pointer' : 'default',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        boxSizing: 'border-box',
         ...style,
       }}
       onMouseOver={(e) => {

@@ -128,6 +128,10 @@ export default function HaulerScheduleManager({ hauler, onChanged }) {
       setError('This hauler has no assigned barangay. Assign one in the Hauler page first.');
       return;
     }
+    if (!form.waste_type || !form.day_of_week || !form.time_window_start || !form.time_window_end) {
+      setError('Please fill in all required fields (waste type, day, start time, end time).');
+      return;
+    }
     if (form.time_window_start && form.time_window_end
         && form.time_window_start === form.time_window_end) {
       setError('Start time and end time must differ.');

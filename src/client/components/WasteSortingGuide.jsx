@@ -47,15 +47,17 @@ export default function WasteSortingGuide() {
     }
 
     const grouped = items.reduce((acc, item) => {
-        if (!acc[item.bin_type]) acc[item.bin_type] = [];
-        acc[item.bin_type].push(item);
+        const rawType = (item.bin_type || 'Uncategorized').trim();
+        const normalizedType = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+        if (!acc[normalizedType]) acc[normalizedType] = [];
+        acc[normalizedType].push(item);
         return acc;
     }, {});
 
     const hasActiveFilters = !!search || !!activeFilter;
 
     return (
-        <div>
+        <div style={{ boxSizing: 'border-box' }}>
             {/* ── Search + Filters ── */}
             <Card style={{ marginBottom: 20 }}>
                 <div style={{ position: 'relative', marginBottom: 14 }}>
@@ -176,11 +178,14 @@ export default function WasteSortingGuide() {
                 />
             ) : (
                 <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                    gap: 20,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 24,
                 }}>
-                    {Object.entries(grouped).map(([binType, binItems]) => {
+                    {BIN_TYPES.map((binType) => {
+                        const binItems = grouped[binType];
+                        if (!binItems || binItems.length === 0) return null;
+                        
                         const binKey = binType.charAt(0).toUpperCase() + binType.slice(1).toLowerCase();
                         return (
                         <Card key={binType} accentColor={COLORS.bin[binKey]}>
@@ -188,13 +193,30 @@ export default function WasteSortingGuide() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                marginBottom: 12,
+                                marginBottom: 16,
+                                paddingBottom: 16,
+                                borderBottom: `1px solid ${COLORS.border}`,
+                                flexWrap: 'wrap',
+                                gap: 12,
                             }}>
-                                <BinColorTag binType={binType} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                                    <BinColorTag binType={binType} />
+                                    <h2 style={{
+                                        margin: 0,
+                                        fontSize: 16,
+                                        fontWeight: 600,
+                                        color: COLORS.text.primary,
+                                    }}>
+                                        {binType} Waste
+                                    </h2>
+                                </div>
                                 <span style={{
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     color: COLORS.text.muted,
                                     fontWeight: 600,
+                                    background: COLORS.bg.muted,
+                                    padding: '4px 10px',
+                                    borderRadius: 12,
                                 }}>
                                     {binItems.length} {binItems.length === 1 ? 'item' : 'items'}
                                 </span>
@@ -203,31 +225,35 @@ export default function WasteSortingGuide() {
                                 listStyle: 'none',
                                 padding: 0,
                                 margin: 0,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 10,
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+                                gap: 12,
                             }}>
                                 {binItems.map((item) => (
                                     <li
                                         key={item.sys_id}
                                         style={{
-                                            padding: '10px 12px',
+                                            padding: '16px',
                                             borderRadius: 8,
                                             background: COLORS.bg.muted,
+                                            border: `1px solid ${COLORS.border}`,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 6,
+                                            boxSizing: 'border-box',
                                         }}
                                     >
                                         <div style={{
                                             color: COLORS.text.primary,
                                             fontWeight: 600,
-                                            fontSize: 14,
+                                            fontSize: 15,
                                         }}>
                                             {item.name}
                                         </div>
                                         <div style={{
                                             color: COLORS.text.secondary,
                                             fontSize: 13,
-                                            marginTop: 2,
-                                            lineHeight: 1.45,
+                                            lineHeight: 1.5,
                                             overflowWrap: 'anywhere',
                                         }}>
                                             {item.disposal_instructions}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Calendar, AlertTriangle, Search, Recycle, Menu, X } from 'lucide-react';
 import { COLORS } from '../../utils/constants';
+import logo from '../header-logo.png';
 
 const RESIDENT_LINKS = [
     { to: '/schedule', label: 'View My Schedule', icon: Calendar },
@@ -67,11 +68,13 @@ export default function Navbar({ isAdmin, onTogglePortal }) {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             }}>
                 <NavLink to="/" style={{ textDecoration: 'none' }}>
-                    <div className="logo-section">
-                        <h1 style={{ margin: 0, color: COLORS.secondary, fontSize: '1.5rem' }}>
-                            Sugbo<span style={{ color: COLORS.primary }}>Clean</span>
-                        </h1>
-                        <small style={{ color: COLORS.text.muted, display: 'block', marginTop: '-3px' }}>
+                    <div className="logo-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <img 
+                            src={logo} 
+                            alt="SugboClean" 
+                            style={{ height: '48px', objectFit: 'contain', marginBottom: '-4px', marginLeft: '-4px' }} 
+                        />
+                        <small style={{ color: COLORS.text.muted, display: 'block', lineHeight: 1 }}>
                             Official LGU Cebu Sanitation Portal
                         </small>
                     </div>

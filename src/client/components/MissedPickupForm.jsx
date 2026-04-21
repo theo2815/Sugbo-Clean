@@ -57,6 +57,10 @@ export default function MissedPickupForm() {
 
     async function handleSubmit(e) {
         e.preventDefault();
+        if (!barangay || !wasteType || !missedDate) {
+            setSubmitError('Please select a barangay, waste type, and missed date.');
+            return;
+        }
         if (!description.trim()) {
             setSubmitError('Please describe what happened so the sanitation office has context.');
             return;
