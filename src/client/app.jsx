@@ -2,10 +2,12 @@ import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { ChatProvider } from '../context/ChatContext';
 import { setUnauthorizedHandler } from '../services/api';
 import PrivateRoute from './components/shared/PrivateRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ChatWidget from './components/resident/ChatWidget';
 
 import HomePage from '../pages/HomePage';
 
@@ -106,6 +108,7 @@ function Shell() {
             </main>
 
             {!isAdminRoute && <Footer />}
+            {!isAdminRoute && <ChatWidget />}
         </div>
     );
 }
@@ -113,9 +116,11 @@ function Shell() {
 export default function App() {
     return (
         <AuthProvider>
-            <HashRouter>
-                <Shell />
-            </HashRouter>
+            <ChatProvider>
+                <HashRouter>
+                    <Shell />
+                </HashRouter>
+            </ChatProvider>
         </AuthProvider>
     );
 }

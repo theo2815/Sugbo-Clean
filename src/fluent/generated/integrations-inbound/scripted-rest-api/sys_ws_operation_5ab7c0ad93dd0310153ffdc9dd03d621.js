@@ -16,14 +16,18 @@
     }
 
     try {
-        var answer = new SugboChatbot().ask(question);
-        if (!answer) {
-            response.setStatus(502);
-            response.setBody({ error: { message: 'The assistant is unavailable right now. Please try again in a moment.' } });
+        var result = new SugboChatbot().ask(question);
+
+        if (!result || !result.answer) {
+            var status = (result && result.status) || 502;
+            var message = (result && result.error) || 'The assistant is unavailable right now. Please try again in a moment.';
+            response.setStatus(status);
+            response.setBody({ error: { message: message } });
             return;
         }
+
         response.setStatus(200);
-        response.setBody({ result: { answer: answer } });
+        response.setBody({ result: { answer: result.answer } });
     } catch (e) {
         gs.error('[ChatbotAsk] exception: ' + e);
         response.setStatus(500);

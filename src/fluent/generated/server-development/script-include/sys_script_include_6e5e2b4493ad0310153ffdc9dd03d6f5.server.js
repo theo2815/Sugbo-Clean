@@ -12,27 +12,28 @@ SugboChatbot.prototype = {
         "Use ONLY the data provided below. If the answer is not in the data, say so honestly — do not invent schedules, barangays, or waste types.",
         "Reply in the same language as the question (English, Cebuano/Bisaya, or Tagalog).",
         "Keep replies to 2–3 sentences.",
-        "When natural, suggest a related action: subscribe to reminders, file a missed-pickup report, check the waste sorting guide.",
-        "Never give medical, legal, or emergency advice — direct to LGU hotline instead."
+        "App navigation hints you may suggest when relevant: /schedule (pickup schedule + reminder signup), /report (file a missed-pickup report), /track (check report status by code), /waste-guide (waste sorting guide).",
+        "When natural, end with a short call-to-action that matches one of those pages.",
+        "Never give medical, legal, or emergency advice — direct to the LGU hotline instead."
     ].join(' '),
 
     ask: function (question) {
         var q = String(question || '').trim();
-        if (!q) return '';
+        if (!q) return { answer: '', error: 'empty_question', status: 400 };
         if (q.length > this.MAX_QUESTION_LEN) q = q.substring(0, this.MAX_QUESTION_LEN);
 
         var apiKey = gs.getProperty('x_1986056_sugbocle.gemini.api_key');
         if (!apiKey) {
             gs.error('[SugboChatbot] api key property is empty');
-            return '';
+            return { answer: '', error: 'The AI key is not configured on the server.', status: 500 };
         }
 
         var contextJson;
         try {
-            contextJson = this._buildContext();
+            contextJson = this._buildContext(q);
         } catch (e) {
             gs.error('[SugboChatbot] context build failed: ' + e);
-            return '';
+            return { answer: '', error: 'Failed to assemble grounding data.', status: 500 };
         }
 
         try {
@@ -41,7 +42,7 @@ SugboChatbot.prototype = {
 
             // Build the full Gemini body in JS and send it raw — avoids PDI-side
             // Escape JSON quirks when the grounding context contains braces/quotes.
-            var body = {
+            var requestBody = {
                 contents: [{
                     parts: [{
                         text: 'Grounding data (JSON):\n' + contextJson + '\n\nUser question: ' + q
@@ -58,47 +59,108 @@ SugboChatbot.prototype = {
                     }
                 }
             };
-            r.setRequestBody(JSON.stringify(body));
+            r.setRequestBody(JSON.stringify(requestBody));
 
             var resp = r.execute();
             var status = resp.getStatusCode();
-            var body = resp.getBody();
+            var responseBody = resp.getBody();
 
             if (status !== 200) {
-                gs.error('[SugboChatbot] HTTP ' + status + ' body=' + body);
-                return '';
+                gs.error('[SugboChatbot] Gemini HTTP ' + status + ' body=' + responseBody);
+                if (status === 429) {
+                    return { answer: '', error: 'Too many questions right now — please wait a moment and try again.', status: 429 };
+                }
+                if (status === 400) {
+                    return { answer: '', error: 'The AI could not process that question. Try rephrasing.', status: 502 };
+                }
+                if (status >= 500) {
+                    return { answer: '', error: 'The AI service is temporarily unavailable. Please try again shortly.', status: 502 };
+                }
+                return { answer: '', error: 'Upstream AI error (HTTP ' + status + ').', status: 502 };
             }
 
-            var envelope = JSON.parse(body);
+            var envelope = JSON.parse(responseBody);
+
+            // Safety-block path: Gemini returns 200 but blocks content — surface a
+            // specific message instead of the generic "Bad Gateway".
+            if (envelope && envelope.promptFeedback && envelope.promptFeedback.blockReason) {
+                gs.error('[SugboChatbot] prompt blocked: ' + envelope.promptFeedback.blockReason);
+                return { answer: '', error: 'That question was blocked by the AI safety filter. Please try another.', status: 502 };
+            }
+
             var text = '';
-            if (envelope && envelope.candidates && envelope.candidates[0] &&
-                envelope.candidates[0].content && envelope.candidates[0].content.parts &&
-                envelope.candidates[0].content.parts[0]) {
-                text = envelope.candidates[0].content.parts[0].text || '';
+            var finishReason = '';
+            if (envelope && envelope.candidates && envelope.candidates[0]) {
+                finishReason = envelope.candidates[0].finishReason || '';
+                if (envelope.candidates[0].content && envelope.candidates[0].content.parts &&
+                    envelope.candidates[0].content.parts[0]) {
+                    text = envelope.candidates[0].content.parts[0].text || '';
+                }
             }
             if (!text) {
-                gs.error('[SugboChatbot] no text in response: ' + body);
-                return '';
+                gs.error('[SugboChatbot] no text in response (finishReason=' + finishReason + '): ' + responseBody);
+                if (finishReason === 'SAFETY' || finishReason === 'RECITATION') {
+                    return { answer: '', error: 'That response was filtered out by the AI. Please try another question.', status: 502 };
+                }
+                return { answer: '', error: 'The AI returned an empty response. Please try again.', status: 502 };
             }
 
-            var parsed = JSON.parse(text);
+            var parsed;
+            try {
+                parsed = JSON.parse(text);
+            } catch (pe) {
+                gs.error('[SugboChatbot] answer JSON parse failed: ' + pe + ' text=' + text);
+                return { answer: '', error: 'The AI returned an unreadable response.', status: 502 };
+            }
+
             var answer = String(parsed.answer || '').trim();
+            if (!answer) {
+                return { answer: '', error: 'The AI returned no answer. Please try again.', status: 502 };
+            }
             if (answer.length > this.MAX_ANSWER_LEN) answer = answer.substring(0, this.MAX_ANSWER_LEN);
-            return answer;
+            return { answer: answer, error: null, status: 200 };
         } catch (e) {
             gs.error('[SugboChatbot] exception: ' + e);
-            return '';
+            return { answer: '', error: 'Unexpected error contacting the AI service.', status: 500 };
         }
     },
 
-    _buildContext: function () {
+    _buildContext: function (question) {
+        var qLower = String(question || '').toLowerCase();
+        var allBarangays = this._loadBarangays();
+        var mentionedIds = this._findMentionedBarangays(qLower, allBarangays);
+
         var payload = {
             system: this.SYSTEM_PROMPT,
-            barangays: this._loadBarangays(),
-            schedules: this._loadSchedules(),
+            barangays: allBarangays.map(function (b) {
+                return { name: b.name, zone: b.zone };
+            }),
             waste_items: this._loadWasteItems()
         };
+
+        // Token-aware filtering: when the user names a specific barangay, only
+        // ship that barangay's schedules + route stops. Otherwise ship schedules
+        // but skip route_stops (which explode quickly — one row per stop per
+        // schedule across the whole city).
+        if (mentionedIds.length) {
+            payload.schedules = this._loadSchedules(mentionedIds);
+            payload.route_stops = this._loadRouteStops(mentionedIds);
+        } else {
+            payload.schedules = this._loadSchedules(null);
+        }
+
         return JSON.stringify(payload);
+    },
+
+    _findMentionedBarangays: function (qLower, barangays) {
+        var matched = [];
+        for (var i = 0; i < barangays.length; i++) {
+            var name = String(barangays[i].name || '').toLowerCase();
+            if (name && qLower.indexOf(name) !== -1) {
+                matched.push(barangays[i].sys_id);
+            }
+        }
+        return matched;
     },
 
     _loadBarangays: function () {
@@ -108,6 +170,7 @@ SugboChatbot.prototype = {
         gr.query();
         while (gr.next()) {
             out.push({
+                sys_id: gr.getUniqueValue(),
                 name: gr.getValue('u_name'),
                 zone: gr.getValue('u_zone')
             });
@@ -115,9 +178,12 @@ SugboChatbot.prototype = {
         return out;
     },
 
-    _loadSchedules: function () {
+    _loadSchedules: function (barangaySysIds) {
         var out = [];
         var gr = new GlideRecord('x_1986056_sugbocle_schedule');
+        if (barangaySysIds && barangaySysIds.length) {
+            gr.addQuery('u_barangay', 'IN', barangaySysIds.join(','));
+        }
         gr.query();
         while (gr.next()) {
             out.push({
@@ -127,6 +193,24 @@ SugboChatbot.prototype = {
                 day_of_week: gr.getDisplayValue('u_day_of_week'),
                 time_window_start: gr.getValue('u_time_window_start'),
                 time_window_end: gr.getValue('u_time_window_end')
+            });
+        }
+        return out;
+    },
+
+    _loadRouteStops: function (barangaySysIds) {
+        if (!barangaySysIds || !barangaySysIds.length) return [];
+        var out = [];
+        var gr = new GlideRecord('x_1986056_sugbocle_route_stop');
+        gr.addQuery('u_barangay', 'IN', barangaySysIds.join(','));
+        gr.query();
+        while (gr.next()) {
+            var startTime = gr.getValue('u_schedule.u_time_window_start');
+            var offset = parseInt(gr.getValue('u_offset_minutes') || '0', 10);
+            out.push({
+                barangay: gr.getDisplayValue('u_barangay'),
+                schedule: gr.getDisplayValue('u_schedule'),
+                estimated_arrival: this._addMinutesToTime(startTime, offset)
             });
         }
         return out;
@@ -146,5 +230,21 @@ SugboChatbot.prototype = {
             });
         }
         return out;
+    },
+
+    // Mirrors etaFromSchedule() in src/utils/helpers.js so the chatbot answers
+    // match what the resident sees in the ScheduleChecker map popups.
+    _addMinutesToTime: function (hhmmss, minutes) {
+        if (!hhmmss) return '';
+        var parts = String(hhmmss).split(':');
+        if (parts.length < 2) return hhmmss;
+        var h = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) return hhmmss;
+        var total = h * 60 + m + (minutes || 0);
+        total = ((total % 1440) + 1440) % 1440;
+        var nh = Math.floor(total / 60);
+        var nm = total % 60;
+        return (nh < 10 ? '0' + nh : String(nh)) + ':' + (nm < 10 ? '0' + nm : String(nm));
     }
 };

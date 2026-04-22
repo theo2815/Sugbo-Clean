@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, X, Send, Sparkles, ArrowRight } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, ArrowRight, RotateCcw } from 'lucide-react';
 import { COLORS } from '../../../utils/constants';
-import { askChatbot } from '../../../services/api';
+import { useChat } from '../../../context/ChatContext';
 
 const SEEDED_PROMPTS = [
     'When is the next pickup in Labangon?',
@@ -10,22 +10,6 @@ const SEEDED_PROMPTS = [
     'How do I report a missed collection?',
     'What waste do you collect?',
 ];
-
-const GREETING = "Hi! I'm SugboClean's resident assistant. Ask about pickup schedules, waste sorting, or how to use the app. I reply in English, Cebuano, or Tagalog.";
-
-function detectAction(text) {
-    const lower = text.toLowerCase();
-    if (lower.includes('subscribe') || lower.includes('reminder')) {
-        return { label: 'Subscribe to reminders', to: '/schedule' };
-    }
-    if (lower.includes('report') && (lower.includes('missed') || lower.includes('file'))) {
-        return { label: 'File a missed-pickup report', to: '/report' };
-    }
-    if (lower.includes('sorting guide') || lower.includes('waste guide') || lower.includes('bin')) {
-        return { label: 'Open the waste sorting guide', to: '/waste-guide' };
-    }
-    return null;
-}
 
 function TypingDots() {
     return (
@@ -55,10 +39,7 @@ function dotStyle(i) {
 }
 
 export default function ChatWidget() {
-    const [open, setOpen] = useState(false);
-    const [messages, setMessages] = useState([{ role: 'bot', text: GREETING }]);
-    const [input, setInput] = useState('');
-    const [sending, setSending] = useState(false);
+    const { open, setOpen, messages, input, setInput, sending, send, reset } = useChat();
     const [isMobile, setIsMobile] = useState(() =>
         typeof window !== 'undefined' ? window.innerWidth < 768 : false
     );
@@ -75,33 +56,11 @@ export default function ChatWidget() {
     useEffect(() => {
         if (!listRef.current) return;
         listRef.current.scrollTop = listRef.current.scrollHeight;
-    }, [messages, sending]);
+    }, [messages, sending, open]);
 
     useEffect(() => {
         if (open && inputRef.current) inputRef.current.focus();
     }, [open]);
-
-    const send = async (questionRaw) => {
-        const question = (questionRaw ?? input).trim();
-        if (!question || sending) return;
-
-        setMessages((prev) => [...prev, { role: 'user', text: question }]);
-        setInput('');
-        setSending(true);
-
-        try {
-            const { result } = await askChatbot(question);
-            const answer = result?.answer || "I'm not sure how to help with that right now.";
-            setMessages((prev) => [...prev, { role: 'bot', text: answer, action: detectAction(answer) }]);
-        } catch (err) {
-            setMessages((prev) => [
-                ...prev,
-                { role: 'bot', text: err?.message || 'The assistant is unavailable right now. Please try again shortly.', error: true },
-            ]);
-        } finally {
-            setSending(false);
-        }
-    };
 
     const onKeyDown = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -155,14 +114,25 @@ export default function ChatWidget() {
                                 <div style={{ fontSize: 11, opacity: 0.85 }}>Schedules, sorting, and app help</div>
                             </div>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setOpen(false)}
-                            aria-label="Close assistant"
-                            style={closeBtnStyle}
-                        >
-                            <X size={18} />
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button
+                                type="button"
+                                onClick={reset}
+                                aria-label="Reset conversation"
+                                title="Reset conversation"
+                                style={iconBtnStyle}
+                            >
+                                <RotateCcw size={16} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setOpen(false)}
+                                aria-label="Close assistant"
+                                style={iconBtnStyle}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
                     </header>
 
                     <div ref={listRef} style={listStyle}>
@@ -279,7 +249,7 @@ const headerStyle = {
     flex: '0 0 auto',
 };
 
-const closeBtnStyle = {
+const iconBtnStyle = {
     background: 'rgba(255,255,255,0.18)',
     color: '#fff',
     border: 'none',
