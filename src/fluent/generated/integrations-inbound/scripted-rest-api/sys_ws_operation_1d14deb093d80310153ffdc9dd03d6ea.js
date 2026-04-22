@@ -15,7 +15,11 @@
                 waste_type: gr.getValue('u_waste_type'),
                 status: gr.getValue('u_status'),
                 description: gr.getValue('u_description'),
-                email: gr.getValue('u_email')
+                email: gr.getValue('u_email'),
+                ai_severity: gr.getValue('u_ai_severity'),
+                ai_summary: gr.getValue('u_ai_summary'),
+                description_lang: gr.getValue('u_description_lang'),
+                description_en: gr.getValue('u_description_en')
             }
         });
     } else {

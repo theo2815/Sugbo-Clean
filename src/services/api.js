@@ -219,6 +219,11 @@ export async function subscribeReminder({ email, schedules }) {
   return { result: data.result };
 }
 
+export async function askChatbot(question) {
+  const data = await request('/chatbot/ask', { method: 'POST', body: { question } });
+  return { result: data.result };
+}
+
 // ============ ADMIN ENDPOINTS (14) ============
 
 export async function getAllReports() {

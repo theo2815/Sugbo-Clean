@@ -4,6 +4,8 @@ import { updateReportStatus, deleteReport } from '../../../services/api';
 import { COLORS, STATUS } from '../../../utils/constants';
 import { formatDate } from '../../../utils/helpers';
 import StatusPill from '../shared/StatusPill';
+import SeverityPill from '../shared/SeverityPill';
+import LanguageBadge from '../shared/LanguageBadge';
 import EmptyState from '../shared/EmptyState';
 import Dropdown from '../shared/Dropdown';
 import ConfirmDialog from '../shared/ConfirmDialog';
@@ -195,6 +197,8 @@ export default function ReportsTable({ reports, onReportsChange }) {
                 <th style={styles.th}>Submitted</th>
                 <th style={styles.th}>Waste Type</th>
                 <th style={styles.th}>Status</th>
+                <th style={styles.th}>AI Severity</th>
+                <th style={styles.th}>Language</th>
                 <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -248,6 +252,12 @@ export default function ReportsTable({ reports, onReportsChange }) {
                     </td>
                     <td style={styles.td}>
                       <StatusPill status={report.status} />
+                    </td>
+                    <td style={styles.td}>
+                      <SeverityPill level={report.ai_severity} size="sm" />
+                    </td>
+                    <td style={styles.td}>
+                      <LanguageBadge lang={report.description_lang} size="sm" />
                     </td>
                     <td style={{ ...styles.td, textAlign: 'right' }}>
                       <div style={styles.actions}>
@@ -398,7 +408,7 @@ const styles = {
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    minWidth: 860,
+    minWidth: 1040,
   },
   th: {
     textAlign: 'left',

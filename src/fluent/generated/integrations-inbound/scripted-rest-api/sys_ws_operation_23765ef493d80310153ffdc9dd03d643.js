@@ -21,6 +21,10 @@
             status: gr.getValue('u_status'),
             email: gr.getValue('u_email'),
             description: gr.getValue('u_description'),
+            ai_severity: gr.getValue('u_ai_severity'),
+            ai_summary: gr.getValue('u_ai_summary'),
+            description_lang: gr.getValue('u_description_lang'),
+            description_en: gr.getValue('u_description_en'),
             created_on: gr.getValue('sys_created_on')
         });
     }

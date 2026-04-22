@@ -49,6 +49,13 @@ export const COLORS = {
     resolved: '#22C55E',
   },
 
+  severity: {
+    Low: '#64748B',
+    Medium: '#F59E0B',
+    High: '#F97316',
+    Critical: '#EF4444',
+  },
+
   bin: {
     Biodegradable: '#22C55E',
     Recyclable: '#3B82F6',
@@ -84,6 +91,15 @@ export const STATUS_COLOR_MAP = {
   'Pending': COLORS.status.pending,
   'In Progress': COLORS.status.inProgress,
   'Resolved': COLORS.status.resolved,
+};
+
+export const SEVERITY_LEVELS = ['Low', 'Medium', 'High', 'Critical'];
+
+export const SEVERITY_COLOR_MAP = {
+  Low: COLORS.severity.Low,
+  Medium: COLORS.severity.Medium,
+  High: COLORS.severity.High,
+  Critical: COLORS.severity.Critical,
 };
 
 export const BIN_TYPES = ['Biodegradable', 'Recyclable', 'Residual', 'Hazardous'];

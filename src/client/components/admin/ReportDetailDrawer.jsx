@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { X, Paperclip, Download, Play, CheckCircle2 } from 'lucide-react';
+import { X, Paperclip, Download, Play, CheckCircle2, Sparkles } from 'lucide-react';
 import { getReportAttachments } from '../../../services/api';
 import { COLORS, STATUS } from '../../../utils/constants';
 import { formatDate } from '../../../utils/helpers';
 import StatusPill from '../shared/StatusPill';
+import SeverityPill from '../shared/SeverityPill';
+import LanguageBadge, { LANGUAGE_LABELS } from '../shared/LanguageBadge';
 import Dropdown from '../shared/Dropdown';
 import ImageViewer from '../shared/ImageViewer';
 
@@ -76,7 +78,10 @@ export default function ReportDetailDrawer({ report, onClose, onStatusChange, is
           <header style={styles.header}>
             <div>
               <div style={styles.code}>{report.report_code}</div>
-              <div style={{ marginTop: 4 }}><StatusPill status={report.status} /></div>
+              <div style={styles.headerPills}>
+                <StatusPill status={report.status} />
+                <LanguageBadge lang={report.description_lang} size="sm" />
+              </div>
             </div>
             <button type="button" aria-label="Close" onClick={onClose} style={styles.closeBtn}>
               <X size={18} />
@@ -89,8 +94,44 @@ export default function ReportDetailDrawer({ report, onClose, onStatusChange, is
             <Row label="Missed Date" value={formatDate(report.missed_date)} />
             <Row label="Submitted" value={formatDate(report.created_on)} />
             <Row label="Email" value={report.email || '—'} wide breakAll />
-            <Row label="Description" value={report.description || '—'} wide preserveLines />
+            {report.description_lang && report.description_lang !== 'en' && report.description_en ? (
+              <>
+                <Row
+                  label={`Original (${LANGUAGE_LABELS[report.description_lang] || 'Non-English'})`}
+                  value={report.description || '—'}
+                  wide
+                  preserveLines
+                />
+                <Row
+                  label="English Translation"
+                  value={report.description_en}
+                  wide
+                  preserveLines
+                />
+              </>
+            ) : (
+              <Row label="Description" value={report.description || '—'} wide preserveLines />
+            )}
           </dl>
+
+          <section style={styles.aiSection}>
+            <h4 style={styles.sectionTitle}><Sparkles size={14} /> AI Analysis</h4>
+            {report.ai_severity || report.ai_summary ? (
+              <>
+                <div style={{ marginBottom: 8 }}>
+                  <SeverityPill level={report.ai_severity} />
+                </div>
+                {report.ai_summary && (
+                  <p style={styles.aiSummary}>{report.ai_summary}</p>
+                )}
+                <p style={styles.aiDisclaimer}>
+                  AI-generated — draft only, not ground truth.
+                </p>
+              </>
+            ) : (
+              <p style={styles.muted}>No AI analysis yet. Classification runs automatically within a few seconds of submission.</p>
+            )}
+          </section>
 
           <section style={styles.actionsSection}>
             <h4 style={styles.sectionTitle}>Update Status</h4>
@@ -206,6 +247,7 @@ const styles = {
     borderBottom: `1px solid ${COLORS.border}`,
   },
   code: { fontFamily: 'monospace', fontWeight: 700, fontSize: 17, color: COLORS.text.primary, letterSpacing: 1 },
+  headerPills: { marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   closeBtn: {
     background: 'transparent', border: `1px solid ${COLORS.border}`, borderRadius: 8,
     padding: 6, cursor: 'pointer', color: COLORS.text.secondary,
@@ -225,6 +267,20 @@ const styles = {
     margin: '0 0 22px', padding: '14px 14px 16px',
     border: `1px solid ${COLORS.border}`, borderRadius: 10,
     background: COLORS.bg.page,
+  },
+  aiSection: {
+    margin: '0 0 22px', padding: '14px 14px 16px',
+    border: `1px solid ${COLORS.border}`, borderRadius: 10,
+    background: COLORS.bg.page,
+  },
+  aiSummary: {
+    margin: '0 0 8px', fontSize: 13, lineHeight: 1.5,
+    color: COLORS.text.primary,
+    whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
+  },
+  aiDisclaimer: {
+    margin: 0, fontSize: 11, color: COLORS.text.muted,
+    fontStyle: 'italic',
   },
   actionsRow: {
     display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',

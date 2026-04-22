@@ -270,5 +270,16 @@ RestApi({
             enforceAcl: [],
             authentication: false,
         },
+        {
+            $id: Now.ID['5ab7c0ad93dd0310153ffdc9dd03d621'],
+            name: 'Chatbot Ask',
+            consumes: 'application/json,application/xml,text/xml',
+            method: 'POST',
+            script: Now.include('./sys_ws_operation_5ab7c0ad93dd0310153ffdc9dd03d621.js'),
+            produces: 'application/json,application/xml,text/xml',
+            path: '/chatbot/ask',
+            enforceAcl: [],
+            authentication: false,
+        },
     ],
 })

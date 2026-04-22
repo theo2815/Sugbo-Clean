@@ -9,6 +9,7 @@ import { getAllReports } from '../../services/api';
 import Card from './shared/Card';
 import Button from './shared/Button';
 import BinColorTag from './shared/BinColorTag';
+import ChatWidget from './resident/ChatWidget';
 
 const QUICK_ACTIONS = [
     { to: '/schedule', label: 'View My Schedule', desc: 'Check pickup days for your barangay', icon: Calendar, accent: COLORS.primary },
@@ -351,6 +352,7 @@ export default function SugboLanding() {
             <QuickActions />
             <SortingTeaser />
             <TodayStrip />
+            <ChatWidget />
         </div>
     );
 }
