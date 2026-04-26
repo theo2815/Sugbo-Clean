@@ -84,7 +84,7 @@
         }
 
         response.setStatus(200);
-        response.setBody({ result: { answer: result.answer } });
+        response.setBody({ result: { answer: result.answer, action: result.action || 'none' } });
     } catch (e) {
         gs.error('[ChatbotAsk] exception: ' + e);
         response.setStatus(500);

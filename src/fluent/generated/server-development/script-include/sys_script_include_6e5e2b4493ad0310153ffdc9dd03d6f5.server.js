@@ -7,13 +7,15 @@ SugboChatbot.prototype = {
     MAX_QUESTION_LEN: 500,
     MAX_ANSWER_LEN: 1200,
 
+    ALLOWED_ACTIONS: ['subscribe', 'report', 'track', 'waste_guide', 'none'],
+
     SYSTEM_PROMPT: [
         "You are SugboClean's resident assistant. Answer questions about waste pickup schedules, waste sorting, and how to use the app.",
         "Use ONLY the data provided below. If the answer is not in the data, say so honestly — do not invent schedules, barangays, or waste types.",
         "Reply in the same language as the question (English, Cebuano/Bisaya, or Tagalog).",
-        "Keep replies to 2–3 sentences.",
-        "App navigation hints you may suggest when relevant: /schedule (pickup schedule + reminder signup), /report (file a missed-pickup report), /track (check report status by code), /waste-guide (waste sorting guide).",
-        "When natural, end with a short call-to-action that matches one of those pages.",
+        "Keep the 'answer' field to 2–3 sentences.",
+        "Also set an 'action' field to ONE of: 'subscribe' (signing up for pickup reminders, /schedule), 'report' (filing a missed-pickup report, /report), 'track' (checking a report status by code, /track), 'waste_guide' (waste sorting guide, /waste-guide), or 'none' (no specific page applies).",
+        "Pick the action that best matches what the resident should do next. Use 'none' for greetings, refusals, off-topic chatter, or general-info answers with no clear next step.",
         "Never give medical, legal, or emergency advice — direct to the LGU hotline instead."
     ].join(' '),
 
@@ -53,9 +55,10 @@ SugboChatbot.prototype = {
                     responseSchema: {
                         type: 'OBJECT',
                         properties: {
-                            answer: { type: 'STRING' }
+                            answer: { type: 'STRING' },
+                            action: { type: 'STRING', enum: this.ALLOWED_ACTIONS }
                         },
-                        required: ['answer']
+                        required: ['answer', 'action']
                     }
                 }
             };
@@ -118,7 +121,13 @@ SugboChatbot.prototype = {
                 return { answer: '', error: 'The AI returned no answer. Please try again.', status: 502 };
             }
             if (answer.length > this.MAX_ANSWER_LEN) answer = answer.substring(0, this.MAX_ANSWER_LEN);
-            return { answer: answer, error: null, status: 200 };
+
+            // Whitelist the action — responseSchema enum guarantees shape but the
+            // model can still drop the field on safety/length cutoffs.
+            var action = String(parsed.action || 'none').trim().toLowerCase();
+            if (this.ALLOWED_ACTIONS.indexOf(action) === -1) action = 'none';
+
+            return { answer: answer, action: action, error: null, status: 200 };
         } catch (e) {
             gs.error('[SugboChatbot] exception: ' + e);
             return { answer: '', error: 'Unexpected error contacting the AI service.', status: 500 };

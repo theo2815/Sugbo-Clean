@@ -6,22 +6,12 @@ const MAX_PERSISTED_MESSAGES = 40;
 
 export const GREETING = "Hi! I'm SugboClean's resident assistant. Ask about pickup schedules, waste sorting, or how to use the app. I reply in English, Cebuano, or Tagalog.";
 
-export function detectAction(text) {
-    const lower = text.toLowerCase();
-    if (lower.includes('subscribe') || lower.includes('reminder')) {
-        return { label: 'Subscribe to reminders', to: '/schedule' };
-    }
-    if (lower.includes('report') && (lower.includes('missed') || lower.includes('file'))) {
-        return { label: 'File a missed-pickup report', to: '/report' };
-    }
-    if (lower.includes('sorting guide') || lower.includes('waste guide') || lower.includes('bin')) {
-        return { label: 'Open the waste sorting guide', to: '/waste-guide' };
-    }
-    if (lower.includes('track') && lower.includes('report')) {
-        return { label: 'Track a report', to: '/track' };
-    }
-    return null;
-}
+const ACTION_MAP = {
+    subscribe: { label: 'Subscribe to reminders', to: '/schedule' },
+    report: { label: 'File a missed-pickup report', to: '/report' },
+    track: { label: 'Track a report', to: '/track' },
+    waste_guide: { label: 'Open the waste sorting guide', to: '/waste-guide' },
+};
 
 function loadInitial() {
     try {
@@ -68,7 +58,8 @@ export function ChatProvider({ children }) {
         try {
             const { result } = await askChatbot(question);
             const answer = result?.answer || "I'm not sure how to help with that right now.";
-            setMessages((prev) => [...prev, { role: 'bot', text: answer, action: detectAction(answer) }]);
+            const action = ACTION_MAP[result?.action] || null;
+            setMessages((prev) => [...prev, { role: 'bot', text: answer, action }]);
         } catch (err) {
             setMessages((prev) => [
                 ...prev,
