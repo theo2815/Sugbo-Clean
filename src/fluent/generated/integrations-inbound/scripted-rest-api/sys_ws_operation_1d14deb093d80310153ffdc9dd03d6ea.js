@@ -6,6 +6,12 @@
     gr.query();
 
     if (gr.next()) {
+        var dupSysId = gr.getValue('u_potential_duplicate_of');
+        var dupCode = '';
+        if (dupSysId) {
+            var dupGr = new GlideRecord('x_1986056_sugbocle_report');
+            if (dupGr.get(dupSysId)) dupCode = dupGr.getValue('u_report_code');
+        }
         response.setBody({
             result: {
                 sys_id: gr.getUniqueValue(),
@@ -19,7 +25,10 @@
                 ai_severity: gr.getValue('u_ai_severity'),
                 ai_summary: gr.getValue('u_ai_summary'),
                 description_lang: gr.getValue('u_description_lang'),
-                description_en: gr.getValue('u_description_en')
+                description_en: gr.getValue('u_description_en'),
+                potential_duplicate_of: dupCode,
+                potential_duplicate_of_id: dupSysId || '',
+                duplicate_reason: gr.getValue('u_duplicate_reason') || ''
             }
         });
     } else {

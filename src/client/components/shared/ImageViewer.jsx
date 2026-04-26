@@ -209,7 +209,8 @@ function ToolBtn({ children, onClick, title, disabled }) {
 
 const styles = {
   backdrop: {
-    position: 'fixed', inset: 0, zIndex: 1100,
+    // 1210 to sit above the ReportDetailDrawer (1200) when opened from inside it.
+    position: 'fixed', inset: 0, zIndex: 1210,
     background: 'rgba(2, 6, 23, 0.85)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 16,

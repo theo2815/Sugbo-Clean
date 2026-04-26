@@ -54,7 +54,8 @@ export default function ConfirmDialog({
 
 const styles = {
   backdrop: {
-    position: 'fixed', inset: 0, zIndex: 1000,
+    // 1200 to sit above the sticky Navbar (zIndex 1100). Matches ReportDetailDrawer.
+    position: 'fixed', inset: 0, zIndex: 1200,
     background: 'rgba(15, 23, 42, 0.45)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 16,

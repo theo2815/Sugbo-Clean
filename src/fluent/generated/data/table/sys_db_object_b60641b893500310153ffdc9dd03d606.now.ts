@@ -1,4 +1,4 @@
-import { ChoiceColumn, StringColumn, Table } from '@servicenow/sdk/core'
+import { ChoiceColumn, ReferenceColumn, StringColumn, Table } from '@servicenow/sdk/core'
 
 export const x_1986056_sugbocle_report = Table({
     actions: ['read', 'update', 'create'],
@@ -33,6 +33,14 @@ export const x_1986056_sugbocle_report = Table({
         u_description_en: StringColumn({
             label: [{ label: 'Description (English)' }],
             maxLength: 4000,
+        }),
+        u_potential_duplicate_of: ReferenceColumn({
+            label: [{ label: 'Potential Duplicate Of' }],
+            referenceTable: 'x_1986056_sugbocle_report',
+        }),
+        u_duplicate_reason: StringColumn({
+            label: [{ label: 'Duplicate Reason' }],
+            maxLength: 500,
         }),
     },
 })

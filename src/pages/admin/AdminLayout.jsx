@@ -9,13 +9,11 @@ export default function AdminLayout() {
   return (
     <AdminContainer>
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <TopBar />
         <main style={{
           flex: 1,
-          minHeight: 0,
           padding: 24,
-          overflowY: 'auto',
           background: COLORS.bg.page,
         }}>
           <Outlet />

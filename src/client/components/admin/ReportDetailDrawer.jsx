@@ -29,7 +29,7 @@ function formatBytes(n) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function ReportDetailDrawer({ report, onClose, onStatusChange, isUpdatingStatus }) {
+export default function ReportDetailDrawer({ report, onClose, onStatusChange, isUpdatingStatus, onJumpToReport }) {
   const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -75,6 +75,16 @@ export default function ReportDetailDrawer({ report, onClose, onStatusChange, is
     <>
       <div role="dialog" aria-modal="true" aria-label="Report detail" style={styles.backdrop} onClick={onClose}>
         <aside style={styles.panel} onClick={(e) => e.stopPropagation()}>
+          {report.status !== STATUS.RESOLVED && report.potential_duplicate_of && report.potential_duplicate_of_id && (
+            <button
+              type="button"
+              onClick={() => onJumpToReport?.(report.potential_duplicate_of_id)}
+              style={styles.dupBanner}
+            >
+              <span aria-hidden="true">⚠</span>
+              Likely duplicate of {report.potential_duplicate_of} — click to view
+            </button>
+          )}
           <header style={styles.header}>
             <div>
               <div style={styles.code}>{report.report_code}</div>
@@ -229,7 +239,8 @@ function Row({ label, value, wide, preserveLines, breakAll }) {
 
 const styles = {
   backdrop: {
-    position: 'fixed', inset: 0, zIndex: 1000,
+    // 1200 to sit above the resident/admin Navbar (sticky at zIndex 1100).
+    position: 'fixed', inset: 0, zIndex: 1200,
     background: 'rgba(15, 23, 42, 0.45)',
     display: 'flex', justifyContent: 'flex-end',
   },
@@ -245,6 +256,14 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     gap: 12, marginBottom: 18, paddingBottom: 14,
     borderBottom: `1px solid ${COLORS.border}`,
+  },
+  dupBanner: {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+    padding: '10px 12px', marginBottom: 14,
+    background: '#FEF3C7', color: '#A16207',
+    border: '1px solid #FDE68A', borderRadius: 10,
+    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+    textAlign: 'left', fontFamily: 'inherit',
   },
   code: { fontFamily: 'monospace', fontWeight: 700, fontSize: 17, color: COLORS.text.primary, letterSpacing: 1 },
   headerPills: { marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' },

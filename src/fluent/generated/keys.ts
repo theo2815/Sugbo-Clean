@@ -409,6 +409,10 @@ declare global {
                         table: 'sys_ui_element'
                         id: '8dff49bc93900310153ffdc9dd03d647'
                     }
+                    '8e2f91d893a04f10153ffdc9dd03d602': {
+                        table: 'sysauto_script'
+                        id: '8e2f91d893a04f10153ffdc9dd03d602'
+                    }
                     '8e5040ae93104f10153ffdc9dd03d67f': {
                         table: 'sys_ui_element'
                         id: '8e5040ae93104f10153ffdc9dd03d67f'
@@ -508,6 +512,11 @@ declare global {
                     c5ff49bc93900310153ffdc9dd03d644: {
                         table: 'sys_ui_element'
                         id: 'c5ff49bc93900310153ffdc9dd03d644'
+                    }
+                    c8d6c97893500310153ffdc9dd03d6f1: {
+                        table: 'sys_db_object'
+                        id: 'c8d6c97893500310153ffdc9dd03d6f1'
+                        deleted: true
                     }
                     c9ff49bc93900310153ffdc9dd03d641: {
                         table: 'sys_ui_element'
@@ -770,6 +779,14 @@ declare global {
                         key: {
                             name: 'x_1986056_sugbocle_route_stop'
                             element: 'u_latitude'
+                        }
+                    },
+                    {
+                        table: 'sys_index'
+                        id: '0f576880ad394efb90b50ff4474bbca1'
+                        key: {
+                            logical_table_name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            col_name_string: 'u_key'
                         }
                     },
                     {
@@ -1142,6 +1159,14 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_dictionary'
+                        id: '3d555cc0e5c04ababb6d720284fc60bf'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            element: 'NULL'
+                        }
+                    },
+                    {
                         table: 'sys_security_acl_role'
                         id: '3d8609f893500310153ffdc9dd03d633'
                         key: {
@@ -1204,6 +1229,14 @@ declare global {
                             name: 'x_1986056_sugbocle_route_stop'
                             element: 'u_longitude'
                             language: 'en'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: '4615fc33955d476889aec52a9a3b2ffd'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            element: 'u_key'
                         }
                     },
                     {
@@ -1397,6 +1430,15 @@ declare global {
                         key: {
                             name: 'x_1986056_sugbocle_route_stop'
                             element: 'u_offsets_minutes'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: '5ecf321c383d410489bbeb93f7b946d5'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            element: 'u_window_end'
+                            language: 'en'
                         }
                     },
                     {
@@ -1718,6 +1760,14 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_dictionary'
+                        id: '8173a4affebd4d129977a701ec085bd0'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            element: 'u_window_end'
+                        }
+                    },
+                    {
                         table: 'sys_documentation'
                         id: '81b9607c61d146e787a5565b03dd3b77'
                         key: {
@@ -1742,6 +1792,14 @@ declare global {
                                 }
                             }
                             element: 'u_estimated_arrival'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: '85b6d62926e14da1a501faf7151acdde'
+                        key: {
+                            name: 'x_1986056_sugbocle_report'
+                            element: 'u_duplicate_reason'
                         }
                     },
                     {
@@ -1866,6 +1924,15 @@ declare global {
                         id: '93d41702cc5a41d4bba7b7bf9c376d1a'
                         key: {
                             name: 'x_1986056_sugbocle_route_stop'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: '954b31265c0545f8b94551c86351ffbb'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            element: 'u_key'
+                            language: 'en'
                         }
                     },
                     {
@@ -2175,6 +2242,15 @@ declare global {
                     },
                     {
                         table: 'sys_documentation'
+                        id: 'b9b93686aa54491ebc0989bdb47bd24e'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            element: 'u_count'
+                            language: 'en'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
                         id: 'ba0641b893500310153ffdc9dd03d66f'
                         key: {
                             name: 'x_1986056_sugbocle_report'
@@ -2257,6 +2333,15 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_documentation'
+                        id: 'caa561db98bb442bb87b94603105bb53'
+                        key: {
+                            name: 'x_1986056_sugbocle_report'
+                            element: 'u_duplicate_reason'
+                            language: 'en'
+                        }
+                    },
+                    {
                         table: 'sys_security_acl_role'
                         id: 'd06641f893500310153ffdc9dd03d635'
                         key: {
@@ -2333,6 +2418,23 @@ declare global {
                                 }
                             }
                             element: 'u_name'
+                        }
+                    },
+                    {
+                        table: 'sys_documentation'
+                        id: 'd59f5382bbf2412ab941b3442a67e2e3'
+                        key: {
+                            name: 'x_1986056_sugbocle_report'
+                            element: 'u_potential_duplicate_of'
+                            language: 'en'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: 'd5d1a13432d34dbcb46c7cd8721d710a'
+                        key: {
+                            name: 'x_1986056_sugbocle_report'
+                            element: 'u_potential_duplicate_of'
                         }
                     },
                     {
@@ -2447,6 +2549,13 @@ declare global {
                                     name: 'x_1986056_sugbocle.resident'
                                 }
                             }
+                        }
+                    },
+                    {
+                        table: 'ua_table_licensing_config'
+                        id: 'e1cdd0b795aa4ecf855cb3db3092b247'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
                         }
                     },
                     {
@@ -2569,10 +2678,27 @@ declare global {
                         }
                     },
                     {
+                        table: 'sys_documentation'
+                        id: 'ed900375e3184f4da3c511fb3ec6ccb7'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            element: 'NULL'
+                            language: 'en'
+                        }
+                    },
+                    {
                         table: 'sys_ux_lib_asset'
                         id: 'eed89dc0471d4c0088889df7f19e1a3a'
                         key: {
                             name: 'x_1986056_sugbocle/main'
+                        }
+                    },
+                    {
+                        table: 'sys_dictionary'
+                        id: 'f16f99276ce84f6c87628750143d4d72'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
+                            element: 'u_count'
                         }
                     },
                     {
@@ -2683,6 +2809,13 @@ declare global {
                                     name: 'x_1986056_sugbocle.admin'
                                 }
                             }
+                        }
+                    },
+                    {
+                        table: 'sys_db_object'
+                        id: 'f73b028f086b4897b1c0b1f99c0d6ae7'
+                        key: {
+                            name: 'x_1986056_sugbocle_chatbot_rate_limit'
                         }
                     },
                     {

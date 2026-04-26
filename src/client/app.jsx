@@ -22,6 +22,7 @@ import OAuthCallback from '../pages/admin/OAuthCallback';
 import AdminLayout from '../pages/admin/AdminLayout';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminAnalyticsPage from '../pages/admin/AdminAnalyticsPage';
+import DuplicateReportsPage from '../pages/admin/DuplicateReportsPage';
 
 import HaulerManager from './components/admin/HaulerManager';
 import BarangayManager from './components/admin/BarangayManager';
@@ -69,10 +70,7 @@ function Shell() {
     return (
         <div
             className="sugboclean-shell"
-            style={isAdminRoute
-                ? { display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }
-                : { display: 'flex', flexDirection: 'column', minHeight: '100vh' }
-            }
+            style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
         >
             <Navbar isAdmin={isAdminRoute} onTogglePortal={togglePortal} />
 
@@ -94,6 +92,7 @@ function Shell() {
                     {/* Admin routes (protected, nested under shared layout) */}
                     <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
                         <Route path="dashboard" element={<AdminDashboardPage />} />
+                        <Route path="duplicate-reports" element={<DuplicateReportsPage />} />
                         <Route path="schedules" element={<RouteBuilder />} />
                         <Route path="route-stops" element={<Navigate to="/admin/schedules" replace />} />
                         <Route path="haulers" element={<HaulerManager />} />

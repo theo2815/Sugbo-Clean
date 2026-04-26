@@ -12,6 +12,12 @@
     gr.query();
 
     while (gr.next()) {
+        var dupSysId = gr.getValue('u_potential_duplicate_of');
+        var dupCode = '';
+        if (dupSysId) {
+            var dupGr = new GlideRecord('x_1986056_sugbocle_report');
+            if (dupGr.get(dupSysId)) dupCode = dupGr.getValue('u_report_code');
+        }
         list.push({
             sys_id: gr.getUniqueValue(),
             report_code: gr.getValue('u_report_code'),
@@ -25,7 +31,10 @@
             ai_summary: gr.getValue('u_ai_summary'),
             description_lang: gr.getValue('u_description_lang'),
             description_en: gr.getValue('u_description_en'),
-            created_on: gr.getValue('sys_created_on')
+            created_on: gr.getValue('sys_created_on'),
+            potential_duplicate_of: dupCode,
+            potential_duplicate_of_id: dupSysId || '',
+            duplicate_reason: gr.getValue('u_duplicate_reason') || ''
         });
     }
 

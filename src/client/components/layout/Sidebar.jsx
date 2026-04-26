@@ -1,13 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Truck,
-  MapPin, Building2, Recycle, BarChart3,
+  LayoutDashboard, Truck, MapPin, Building2, Recycle, BarChart3, Files,
 } from 'lucide-react';
-import { COLORS } from '../../../utils/constants';
+import { COLORS, STATUS } from '../../../utils/constants';
+import { getAllReports } from '../../../services/api';
+
+// Active cluster = ≥2 reports sharing a root id (potential_duplicate_of_id || sys_id),
+// where at least one member is not Resolved. Count is a discovery hint on the
+// nav entry, not authoritative — DuplicateReportsPage does its own derivation.
+function deriveActiveClusterCount(reports) {
+  const groups = new Map();
+  for (const r of reports) {
+    const root = r.potential_duplicate_of_id || r.sys_id;
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(r);
+  }
+  let count = 0;
+  for (const members of groups.values()) {
+    if (members.length < 2) continue;
+    if (members.some((m) => m.status !== STATUS.RESOLVED)) count++;
+  }
+  return count;
+}
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
+  { icon: Files, label: 'Duplicate Reports', path: '/admin/duplicate-reports', showBadge: true },
   { icon: MapPin, label: 'Routes', path: '/admin/schedules' },
   { icon: Truck, label: 'Haulers', path: '/admin/haulers' },
   { icon: Building2, label: 'Barangays', path: '/admin/barangays' },
@@ -16,6 +35,30 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+  const [clusterCount, setClusterCount] = useState(0);
+
+  // Fetch on mount; refetch when any page dispatches sc:reports-changed
+  // after a status update or delete. Avoids polling and avoids re-fetching
+  // on every nav within /admin.
+  useEffect(() => {
+    let cancelled = false;
+    async function refresh() {
+      try {
+        const { result } = await getAllReports();
+        if (!cancelled) setClusterCount(deriveActiveClusterCount(result));
+      } catch {
+        // Soft fail — badge stays at last known value.
+      }
+    }
+    refresh();
+    function onChange() { refresh(); }
+    window.addEventListener('sc:reports-changed', onChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('sc:reports-changed', onChange);
+    };
+  }, []);
+
   return (
     <aside style={styles.sidebar}>
       <div style={styles.logoContainer}>
@@ -32,6 +75,7 @@ export default function Sidebar() {
       <nav style={styles.nav}>
         {navItems.map((item) => {
           const Icon = item.icon;
+          const showBadge = item.showBadge && clusterCount > 0;
           return (
             <NavLink
               key={item.label}
@@ -45,7 +89,12 @@ export default function Sidebar() {
               })}
             >
               <Icon size={18} />
-              <span>{item.label}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {showBadge && (
+                <span style={styles.badge} aria-label={`${clusterCount} active duplicate ${clusterCount === 1 ? 'cluster' : 'clusters'}`}>
+                  {clusterCount}
+                </span>
+              )}
             </NavLink>
           );
         })}
@@ -63,6 +112,14 @@ const styles = {
     flexShrink: 0,
     display: 'flex',
     flexDirection: 'column',
+    // Stay in view as the page scrolls. 80px matches the sticky Navbar height.
+    position: 'sticky',
+    top: 80,
+    alignSelf: 'flex-start',
+    // Always fill at least the viewport so the white background never gets cut
+    // short on pages where main content is taller than the nav list.
+    minHeight: 'calc(100vh - 80px)',
+    maxHeight: 'calc(100vh - 80px)',
     overflowY: 'auto',
   },
   logoContainer: {
@@ -118,5 +175,19 @@ const styles = {
     borderRadius: 10,
     fontSize: 14,
     transition: 'background 0.12s ease',
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    padding: '0 6px',
+    borderRadius: 999,
+    background: COLORS.warning,
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 700,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
   },
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, CheckCircle2, Inbox, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Play, CheckCircle2, Inbox, Trash2, Files } from 'lucide-react';
 import { updateReportStatus, deleteReport } from '../../../services/api';
 import { COLORS, STATUS } from '../../../utils/constants';
 import { formatDate } from '../../../utils/helpers';
@@ -26,7 +27,26 @@ const NEXT_STATUS = {
   [STATUS.IN_PROGRESS]: { label: 'Resolve', next: STATUS.RESOLVED, icon: CheckCircle2, color: COLORS.status.resolved },
 };
 
+// Active cluster = ≥2 reports sharing root id (potential_duplicate_of_id || sys_id),
+// where at least one member is non-Resolved. Cluster triage lives on its own page;
+// the table just exposes a header button when there's something to review.
+function deriveActiveClusterCount(reports) {
+  const groups = new Map();
+  for (const r of reports) {
+    const root = r.potential_duplicate_of_id || r.sys_id;
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(r);
+  }
+  let count = 0;
+  for (const members of groups.values()) {
+    if (members.length < 2) continue;
+    if (members.some((m) => m.status !== STATUS.RESOLVED)) count++;
+  }
+  return count;
+}
+
 export default function ReportsTable({ reports, onReportsChange }) {
+  const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState(null);
   const [detailId, setDetailId] = useState(null);
   const [statusError, setStatusError] = useState(null);
@@ -41,6 +61,8 @@ export default function ReportsTable({ reports, onReportsChange }) {
     if (sa !== sb) return sa - sb;
     return new Date(b.missed_date) - new Date(a.missed_date);
   }), [reports]);
+
+  const activeClusterCount = useMemo(() => deriveActiveClusterCount(reports), [reports]);
 
   // Derive the open drawer's report from the live list so status updates re-render it.
   const detail = useMemo(
@@ -88,6 +110,7 @@ export default function ReportsTable({ reports, onReportsChange }) {
     setStatusError(null);
     try {
       await updateReportStatus(report.sys_id, newStatus);
+      window.dispatchEvent(new CustomEvent('sc:reports-changed'));
       if (onReportsChange) await onReportsChange();
     } catch (err) {
       setStatusError(err?.message || 'Failed to update status. Please try again.');
@@ -109,6 +132,9 @@ export default function ReportsTable({ reports, onReportsChange }) {
       setToast({ type: 'error', message: `Failed to delete ${failed} ${failed === 1 ? 'report' : 'reports'}. Please try again.` });
     } else {
       setToast({ type: 'error', message: `Deleted ${ids.length - failed}; ${failed} failed. Please retry the remaining.` });
+    }
+    if (failed < ids.length) {
+      window.dispatchEvent(new CustomEvent('sc:reports-changed'));
     }
     clearSelection();
     if (onReportsChange) await onReportsChange();
@@ -139,7 +165,20 @@ export default function ReportsTable({ reports, onReportsChange }) {
           <h3 style={styles.title}>Reports</h3>
           <p style={styles.subtitle}>Pending first, then In Progress, then Resolved. Click status to advance.</p>
         </div>
-        <span style={styles.countPill}>{reports.length}</span>
+        <div style={styles.headerActions}>
+          {activeClusterCount > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate('/admin/duplicate-reports')}
+              style={styles.dupReviewBtn}
+              aria-label={`Review ${activeClusterCount} duplicate ${activeClusterCount === 1 ? 'cluster' : 'clusters'}`}
+            >
+              <Files size={13} aria-hidden="true" />
+              Review duplicates · {activeClusterCount}
+            </button>
+          )}
+          <span style={styles.countPill}>{reports.length}</span>
+        </div>
       </div>
 
       {selected.size > 0 && (
@@ -302,6 +341,7 @@ export default function ReportsTable({ reports, onReportsChange }) {
         onClose={() => setDetailId(null)}
         onStatusChange={(newStatus) => detail && setStatus(detail, newStatus)}
         isUpdatingStatus={detail && updatingId === detail.sys_id}
+        onJumpToReport={(targetSysId) => setDetailId(targetSysId)}
       />
 
       <ConfirmDialog
@@ -486,5 +526,27 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'background 0.12s ease',
+  },
+  headerActions: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+  },
+  dupReviewBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 12px',
+    border: `1px solid ${COLORS.warning}`,
+    background: '#FEF3C7',
+    color: '#A16207',
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
   },
 };
