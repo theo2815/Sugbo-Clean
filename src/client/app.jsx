@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -56,16 +56,21 @@ function Shell() {
     }, [navigate]);
 
     // Any 401 from an authenticated API call ends the admin session. Flash is
-    // read once by LoginPage and cleared.
+    // read once by LoginPage and cleared. Register the handler ONCE — reading
+    // isAdmin via a ref avoids the brief null-handler window during logout
+    // when the dep array would otherwise re-run cleanup before re-registering.
+    const isAdminRef = useRef(isAdmin);
+    useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
+
     useEffect(() => {
         setUnauthorizedHandler(() => {
-            if (!isAdmin) return;
+            if (!isAdminRef.current) return;
             logout();
             sessionStorage.setItem('sc_flash', 'Your session expired. Please sign in again.');
             navigate('/admin/login');
         });
         return () => setUnauthorizedHandler(null);
-    }, [isAdmin, logout, navigate]);
+    }, [logout, navigate]);
 
     return (
         <div

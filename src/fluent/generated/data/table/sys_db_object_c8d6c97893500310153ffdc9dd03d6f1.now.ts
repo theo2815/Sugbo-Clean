@@ -26,7 +26,7 @@ export const x_1986056_sugbocle_chatbot_rate_limit = Table({
     index: [
         {
             name: 'idx_key',
-            unique: false,
+            unique: true,
             element: 'u_key',
         },
     ],

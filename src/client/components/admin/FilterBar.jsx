@@ -12,8 +12,13 @@ export default function FilterBar({ onFilterChange, resultCount }) {
 
   useEffect(() => {
     async function load() {
-      const { result } = await getBarangays();
-      setBarangays(result);
+      try {
+        const { result } = await getBarangays();
+        setBarangays(result);
+      } catch {
+        // Soft fail — filter still works without barangay options.
+        // Dashboard's loadReports surfaces a Retry banner if the API is truly down.
+      }
     }
     load();
   }, []);

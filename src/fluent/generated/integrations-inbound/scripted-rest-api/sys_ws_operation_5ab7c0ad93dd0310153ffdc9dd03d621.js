@@ -69,7 +69,34 @@
         var endGdt = new GlideDateTime();
         endGdt.setNumericValue(nowMs + WINDOW_MS);
         ins.setValue('u_window_end', endGdt);
-        ins.insert();
+        var insertedSysId;
+        try {
+            insertedSysId = ins.insert();
+        } catch (insertErr) {
+            insertedSysId = null;
+        }
+        // Lost the insert race against another concurrent request — re-query
+        // and treat as cache hit (increment or 429). Relies on the unique
+        // index on u_key to make duplicate inserts fail deterministically.
+        if (!insertedSysId) {
+            var retry = new GlideRecord('x_1986056_sugbocle_chatbot_rate_limit');
+            retry.addQuery('u_key', key);
+            retry.setLimit(1);
+            retry.query();
+            if (retry.next()) {
+                var retryCount = parseInt(retry.getValue('u_count'), 10) || 0;
+                var retryWindowEndMs = new GlideDateTime(retry.getValue('u_window_end')).getNumericValue();
+                if (retryWindowEndMs > nowMs && retryCount >= RATE_LIMIT) {
+                    var retryAfter2 = Math.max(1, Math.ceil((retryWindowEndMs - nowMs) / 1000));
+                    response.setStatus(429);
+                    response.setHeader('Retry-After', String(retryAfter2));
+                    response.setBody({ error: { message: 'Too many questions in a short time. Please try again in a moment.' } });
+                    return;
+                }
+                retry.setValue('u_count', retryCount + 1);
+                retry.update();
+            }
+        }
     }
 
     try {

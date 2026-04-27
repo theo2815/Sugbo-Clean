@@ -27,10 +27,15 @@ export default function HaulerManager() {
 
   async function load() {
     setLoading(true);
-    const [haulRes, brgyRes] = await Promise.all([getHaulers(), getBarangays()]);
-    setItems(haulRes.result);
-    setBarangays(brgyRes.result);
-    setLoading(false);
+    try {
+      const [haulRes, brgyRes] = await Promise.all([getHaulers(), getBarangays()]);
+      setItems(haulRes.result);
+      setBarangays(brgyRes.result);
+    } catch (err) {
+      setToast({ message: err?.message || 'Failed to load haulers.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function openNew() {

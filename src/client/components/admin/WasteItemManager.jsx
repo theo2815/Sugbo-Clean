@@ -75,9 +75,14 @@ export default function WasteItemManager() {
 
   async function load() {
     setLoading(true);
-    const { result } = await getWasteItems();
-    setItems(result);
-    setLoading(false);
+    try {
+      const { result } = await getWasteItems();
+      setItems(result);
+    } catch (err) {
+      setToast({ message: err?.message || 'Failed to load waste items.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function openNew(binType) {
