@@ -10,6 +10,7 @@ export default function ConfirmDialog({
   cancelLabel = 'Cancel',
   danger = true,
   loading = false,
+  allowCancelWhileLoading = false,
   onConfirm,
   onCancel,
 }) {
@@ -34,7 +35,7 @@ export default function ConfirmDialog({
         <h3 style={styles.title}>{title}</h3>
         {message && <p style={styles.message}>{message}</p>}
         <div style={styles.actions}>
-          <Button variant="ghost" size="sm" onClick={onCancel} disabled={loading}>
+          <Button variant="ghost" size="sm" onClick={onCancel} disabled={loading && !allowCancelWhileLoading}>
             {cancelLabel}
           </Button>
           <Button

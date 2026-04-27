@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Copy, CalendarDays, MapPin, SearchX, RotateCcw } from 'lucide-react';
 import { getReportByCode, ApiError } from '../../../services/api';
@@ -24,9 +24,32 @@ export default function ReportTracker() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null); // { kind: 'notFound' | 'network', message }
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [, setTick] = useState(0);
+
+  const doSearch = useCallback(async (searchCode) => {
+    const trimmed = (searchCode || '').trim();
+    if (!trimmed) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { result } = await getReportByCode(trimmed);
+      setReport(result);
+      setLastUpdated(Date.now());
+    } catch (err) {
+      setReport(null);
+      if (err instanceof ApiError && err.isNotFound) {
+        setError({ kind: 'notFound' });
+      } else if (err instanceof ApiError && err.isNetwork) {
+        setError({ kind: 'network', message: err.message });
+      } else {
+        setError({ kind: 'network', message: err?.message || 'Something went wrong. Please try again.' });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const queryCode = searchParams.get('code');
@@ -34,7 +57,7 @@ export default function ReportTracker() {
       setCode(queryCode);
       doSearch(queryCode);
     }
-  }, []);
+  }, [doSearch, searchParams]);
 
   // Poll every 10s when a report is loaded so updates appear without manual refresh.
   useEffect(() => {
@@ -61,34 +84,15 @@ export default function ReportTracker() {
     return () => clearInterval(tick);
   }, [report]);
 
-  async function doSearch(searchCode) {
-    const trimmed = (searchCode || code).trim();
-    if (!trimmed) return;
-    setLoading(true);
-    setError(null);
+  async function handleCopy() {
+    if (!report) return;
     try {
-      const { result } = await getReportByCode(trimmed);
-      setReport(result);
-      setLastUpdated(Date.now());
-    } catch (err) {
-      setReport(null);
-      if (err instanceof ApiError && err.isNotFound) {
-        setError({ kind: 'notFound' });
-      } else if (err instanceof ApiError && err.isNetwork) {
-        setError({ kind: 'network', message: err.message });
-      } else {
-        setError({ kind: 'network', message: err?.message || 'Something went wrong. Please try again.' });
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleCopy() {
-    if (report) {
-      navigator.clipboard.writeText(report.report_code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(report.report_code);
+      setCopyState('ok');
+      setTimeout(() => setCopyState(null), 2000);
+    } catch {
+      setCopyState('fail');
+      setTimeout(() => setCopyState(null), 2500);
     }
   }
 
@@ -141,12 +145,12 @@ export default function ReportTracker() {
               placeholder="SC-2026-0001"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === 'Enter' && doSearch()}
+              onKeyDown={(e) => e.key === 'Enter' && doSearch(code)}
               aria-label="Report code"
               autoComplete="off"
             />
           </div>
-          <Button onClick={() => doSearch()} loading={loading} disabled={!code.trim()}>
+          <Button onClick={() => doSearch(code)} loading={loading} disabled={!code.trim()}>
             Track
           </Button>
         </div>
@@ -182,7 +186,7 @@ export default function ReportTracker() {
             </div>
             <Button variant="outline" size="sm" onClick={handleCopy}>
               <Copy size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-              {copied ? 'Copied!' : 'Copy'}
+              {copyState === 'ok' ? 'Copied!' : copyState === 'fail' ? 'Copy failed' : 'Copy'}
             </Button>
           </div>
 
@@ -238,7 +242,7 @@ export default function ReportTracker() {
           <span style={{ fontSize: 14 }}>
             {error.message || 'Something went wrong. Please try again.'}
           </span>
-          <Button variant="outline" size="sm" onClick={() => doSearch()}>
+          <Button variant="outline" size="sm" onClick={() => doSearch(code)}>
             <RotateCcw size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />
             Retry
           </Button>

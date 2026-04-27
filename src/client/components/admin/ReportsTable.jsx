@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, CheckCircle2, Inbox, Trash2, Files } from 'lucide-react';
 import { updateReportStatus, deleteReport } from '../../../services/api';
@@ -54,6 +54,10 @@ export default function ReportsTable({ reports, onReportsChange }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState(null);
+  // Chunk-boundary cancel for bulk delete. The shared request() helper in
+  // services/api.js does not accept an AbortSignal, so cancellation happens
+  // at the chunk boundary (every 5 deletes) — not mid-fetch.
+  const cancelledRef = useRef(false);
 
   const sorted = useMemo(() => reports.slice().sort((a, b) => {
     const sa = STATUS_SORT_RANK[a.status] ?? 99;
@@ -121,23 +125,59 @@ export default function ReportsTable({ reports, onReportsChange }) {
 
   async function handleBulkDelete() {
     const ids = Array.from(selected);
+    cancelledRef.current = false;
     setDeleting(true);
-    const results = await Promise.allSettled(ids.map((id) => deleteReport(id)));
-    const failed = results.filter((r) => r.status === 'rejected').length;
+
+    const CHUNK_SIZE = 5;
+    let succeeded = 0;
+    let failed = 0;
+    let processed = 0;
+
+    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+      if (cancelledRef.current) break;
+      const chunk = ids.slice(i, i + CHUNK_SIZE);
+      const results = await Promise.allSettled(chunk.map((id) => deleteReport(id)));
+      for (const r of results) {
+        if (r.status === 'fulfilled') succeeded++;
+        else failed++;
+      }
+      processed += chunk.length;
+    }
+
+    const cancelledRemaining = ids.length - processed;
     setDeleting(false);
     setConfirmOpen(false);
-    if (failed === 0) {
+
+    if (cancelledRemaining > 0) {
+      setToast({
+        type: 'success',
+        message: succeeded > 0
+          ? `Deleted ${succeeded} of ${ids.length}; cancelled remaining.`
+          : 'Bulk delete cancelled.',
+      });
+    } else if (failed === 0) {
       setToast({ type: 'success', message: `Deleted ${ids.length} ${ids.length === 1 ? 'report' : 'reports'}.` });
     } else if (failed === ids.length) {
       setToast({ type: 'error', message: `Failed to delete ${failed} ${failed === 1 ? 'report' : 'reports'}. Please try again.` });
     } else {
-      setToast({ type: 'error', message: `Deleted ${ids.length - failed}; ${failed} failed. Please retry the remaining.` });
+      setToast({ type: 'error', message: `Deleted ${succeeded}; ${failed} failed. Please retry the remaining.` });
     }
-    if (failed < ids.length) {
+
+    if (succeeded > 0) {
       window.dispatchEvent(new CustomEvent('sc:reports-changed'));
     }
     clearSelection();
     if (onReportsChange) await onReportsChange();
+  }
+
+  function handleCancelDelete() {
+    if (deleting) {
+      // Mid-flight: signal cancel; handleBulkDelete unwinds on next chunk
+      // boundary and closes the dialog itself.
+      cancelledRef.current = true;
+    } else {
+      setConfirmOpen(false);
+    }
   }
 
   return (
@@ -347,11 +387,17 @@ export default function ReportsTable({ reports, onReportsChange }) {
       <ConfirmDialog
         open={confirmOpen}
         title={`Delete ${selected.size} ${selected.size === 1 ? 'report' : 'reports'}?`}
-        message="This permanently removes the selected reports from ServiceNow. This action cannot be undone."
+        message={
+          deleting
+            ? 'Working through your selection 5 at a time. Click Cancel to stop after the current batch.'
+            : 'This permanently removes the selected reports from ServiceNow. This action cannot be undone.'
+        }
         confirmLabel={deleting ? 'Deleting…' : `Delete ${selected.size}`}
+        cancelLabel={deleting ? 'Cancel delete' : 'Cancel'}
         loading={deleting}
+        allowCancelWhileLoading
         onConfirm={handleBulkDelete}
-        onCancel={() => setConfirmOpen(false)}
+        onCancel={handleCancelDelete}
       />
 
       {toast && (

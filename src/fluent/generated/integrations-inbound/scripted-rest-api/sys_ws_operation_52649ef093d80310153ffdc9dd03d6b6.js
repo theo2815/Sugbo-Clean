@@ -10,6 +10,12 @@
         return;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        response.setStatus(400);
+        response.setBody({ error: { message: 'Please enter a valid email address.' } });
+        return;
+    }
+
     if (!schedules.length) {
         response.setStatus(400);
         response.setBody({ error: { message: 'At least one schedule must be selected' } });

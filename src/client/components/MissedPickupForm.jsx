@@ -10,6 +10,7 @@ import Button from './shared/Button';
 import Card from './shared/Card';
 import DatePicker from './shared/DatePicker';
 import FileUpload from './shared/FileUpload';
+import Toast from './shared/Toast';
 
 function FieldGroup({ title, children }) {
     return (
@@ -46,11 +47,16 @@ export default function MissedPickupForm() {
     const [uploadPct, setUploadPct] = useState(null);
     const [submittedCode, setSubmittedCode] = useState(null);
     const [copied, setCopied] = useState(false);
+    const [toast, setToast] = useState(null);
 
     useEffect(() => {
         async function load() {
-            const { result } = await getBarangays();
-            setBarangays(result);
+            try {
+                const { result } = await getBarangays();
+                setBarangays(result);
+            } catch (err) {
+                setToast({ message: err?.message || 'Failed to load barangays.', type: 'error' });
+            }
         }
         load();
     }, []);
@@ -94,16 +100,30 @@ export default function MissedPickupForm() {
         }
     }
 
-    function handleCopy() {
-        navigator.clipboard.writeText(submittedCode);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    async function handleCopy() {
+        try {
+            await navigator.clipboard.writeText(submittedCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setToast({ message: 'Could not copy to clipboard. Please copy manually.', type: 'error' });
+        }
     }
 
     const canSubmit = barangay && wasteType && missedDate && description.trim() && !submitting;
 
+    const toastNode = toast && (
+        <Toast
+            message={toast.message}
+            type={toast.type}
+            duration={toast.type === 'error' ? 5000 : 3500}
+            onClose={() => setToast(null)}
+        />
+    );
+
     if (submittedCode) {
         return (
+            <>
             <Card style={{ textAlign: 'center', padding: 32, maxWidth: 540, margin: '0 auto' }}>
                 <div style={{
                     width: 64, height: 64, borderRadius: '50%',
@@ -156,10 +176,13 @@ export default function MissedPickupForm() {
                     </Button>
                 </div>
             </Card>
+            {toastNode}
+            </>
         );
     }
 
     return (
+        <>
         <Card style={{ maxWidth: 640, margin: '0 auto' }}>
             <div style={{
                 display: 'flex',
@@ -279,5 +302,7 @@ export default function MissedPickupForm() {
                 </div>
             </form>
         </Card>
+        {toastNode}
+        </>
     );
 }

@@ -136,8 +136,8 @@ export default function ChatWidget() {
                     </header>
 
                     <div ref={listRef} style={listStyle}>
-                        {messages.map((m, i) => (
-                            <div key={i} style={m.role === 'user' ? userRowStyle : botRowStyle}>
+                        {messages.map((m) => (
+                            <div key={m.id} style={m.role === 'user' ? userRowStyle : botRowStyle}>
                                 <div style={m.role === 'user' ? userBubbleStyle : botBubbleStyle(m.error)}>
                                     {m.text}
                                 </div>

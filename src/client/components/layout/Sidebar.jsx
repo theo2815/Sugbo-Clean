@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Truck, MapPin, Building2, Recycle, BarChart3, Files,
 } from 'lucide-react';
@@ -36,10 +36,12 @@ const navItems = [
 
 export default function Sidebar() {
   const [clusterCount, setClusterCount] = useState(0);
+  const { pathname } = useLocation();
 
-  // Fetch on mount; refetch when any page dispatches sc:reports-changed
-  // after a status update or delete. Avoids polling and avoids re-fetching
-  // on every nav within /admin.
+  // Refresh triggers: mount, pathname change within /admin/*, sc:reports-changed
+  // event from any page after a status update / delete, and tab focus
+  // (visibilitychange) so a multi-device admin sees fresh counts after
+  // alt-tabbing back. Soft-fail keeps last known value on transient errors.
   useEffect(() => {
     let cancelled = false;
     async function refresh() {
@@ -52,12 +54,17 @@ export default function Sidebar() {
     }
     refresh();
     function onChange() { refresh(); }
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') refresh();
+    }
     window.addEventListener('sc:reports-changed', onChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       cancelled = true;
       window.removeEventListener('sc:reports-changed', onChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <aside style={styles.sidebar}>

@@ -13,12 +13,15 @@ const ACTION_MAP = {
     waste_guide: { label: 'Open the waste sorting guide', to: '/waste-guide' },
 };
 
+const makeId = () => Date.now() + Math.random();
+
 function loadInitial() {
     try {
         const raw = sessionStorage.getItem(STORAGE_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         if (!parsed || !Array.isArray(parsed.messages)) return null;
+        parsed.messages = parsed.messages.map((m) => (m && m.id ? m : { ...m, id: makeId() }));
         return parsed;
     } catch {
         return null;
@@ -30,7 +33,7 @@ const ChatContext = createContext(null);
 export function ChatProvider({ children }) {
     const initial = loadInitial();
     const [open, setOpen] = useState(initial?.open ?? false);
-    const [messages, setMessages] = useState(initial?.messages?.length ? initial.messages : [{ role: 'bot', text: GREETING }]);
+    const [messages, setMessages] = useState(initial?.messages?.length ? initial.messages : [{ id: makeId(), role: 'bot', text: GREETING }]);
     const [input, setInput] = useState(initial?.input ?? '');
     const [sending, setSending] = useState(false);
     const sendingRef = useRef(false);
@@ -51,7 +54,7 @@ export function ChatProvider({ children }) {
         if (!question || sendingRef.current) return;
 
         sendingRef.current = true;
-        setMessages((prev) => [...prev, { role: 'user', text: question }]);
+        setMessages((prev) => [...prev, { id: makeId(), role: 'user', text: question }]);
         setInput('');
         setSending(true);
 
@@ -59,11 +62,11 @@ export function ChatProvider({ children }) {
             const { result } = await askChatbot(question);
             const answer = result?.answer || "I'm not sure how to help with that right now.";
             const action = ACTION_MAP[result?.action] || null;
-            setMessages((prev) => [...prev, { role: 'bot', text: answer, action }]);
+            setMessages((prev) => [...prev, { id: makeId(), role: 'bot', text: answer, action }]);
         } catch (err) {
             setMessages((prev) => [
                 ...prev,
-                { role: 'bot', text: err?.message || 'The assistant is unavailable right now. Please try again shortly.', error: true },
+                { id: makeId(), role: 'bot', text: err?.message || 'The assistant is unavailable right now. Please try again shortly.', error: true },
             ]);
         } finally {
             sendingRef.current = false;
@@ -72,7 +75,7 @@ export function ChatProvider({ children }) {
     }, [input]);
 
     const reset = useCallback(() => {
-        setMessages([{ role: 'bot', text: GREETING }]);
+        setMessages([{ id: makeId(), role: 'bot', text: GREETING }]);
         setInput('');
         try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     }, []);
